@@ -1,5 +1,19 @@
+---
+title: 上传文件记录
+slug: 上传文件记录 37d3dcd9d2
+description:
+date: 2025-09-07
+lastmod: 2025-09-07 20:44:53
+image: img/title.jpg
+math:
+license:
+hidden: false
+draft: false
+password:
+categories: ['仪器文档上传']
+tags: []
+---
+以下是所有上传文件的记录，按上传时间倒序排列：
 
-| 文件名 | 上传时间 | 文件路径 |
-|--------|----------|----------|
-| DHCM00001-AVE766尿机.docx | 2025-09-07 12:17:08 | src/upload/assets/DHCM00001-AVE766尿机.docx |
-
+| 文件名 | 上传时间 | 文件链接 | 上传人 |
+|--------|----------|----------|----------|
