@@ -3,16 +3,18 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches: [ main ]
-  pull_request:
-    branches: [ main ]
+    # 只在特定目录变化时触发，减少不必要的运行
+    paths:
+      - 'src/**'
+      - '.github/workflows/deploy.yaml'
   workflow_dispatch:
   repository_dispatch:
     types: [file_uploaded]
 
-# 调整并发控制策略
+# 恢复并发控制以避免频繁部署
 concurrency:
-  group: ${{ github.ref }}-file-upload-${{ github.run_id }}  # 添加唯一的run_id
-  cancel-in-progress: false  # 不取消正在运行的工作流
+  group: ${{ github.ref }}-file-upload
+  cancel-in-progress: true  # 取消旧的部署，只保留最新的
 
 jobs:
   build:
@@ -21,20 +23,13 @@ jobs:
       contents: write
       pages: write
       id-token: write
+    timeout-minutes: 10  # 设置作业超时时间
+    
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          
-      - name: 等待前序任务完成
-        run: |
-          echo "等待可能正在运行的工作流完成..."
-          sleep 10  # 延长等待时间
-          
-      - name: 拉取最新代码
-        run: |
-          git pull origin main
           
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -49,8 +44,6 @@ jobs:
           FILE_COUNT=$(echo '${{ toJSON(github.event.client_payload.batch_files) }}' | jq '. | length')
           echo "文件数量: $FILE_COUNT"
           python upload.py "$BATCH_FILES" "${{ github.event.client_payload.batch_timestamp }}"
-          echo "Markdown文件内容:"
-          cat src/upload.md
           
       - name: Commit changes
         if: github.event_name == 'repository_dispatch' && github.event.action == 'file_uploaded'
@@ -71,7 +64,8 @@ jobs:
         with:
           path: '.'
           
-      - name: Deploy to GitHub Pages
+      - name: Deploy to GitHub Pages with timeout
         id: deployment
         uses: actions/deploy-pages@v4
+        timeout-minutes: 5  # 部署步骤单独设置超时
     
