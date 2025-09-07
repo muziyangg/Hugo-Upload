@@ -3,7 +3,7 @@ title: 上传文件记录
 slug: 上传文件记录 37d3dcd9d2
 description:
 date: 2025-09-07
-lastmod: 2025-09-07 13:53:41
+lastmod: 2025-09-07 14:11:26
 image: img/title.jpg
 math:
 license:
@@ -17,6 +17,10 @@ tags: []
 
 | 文件名 | 上传时间 | 文件链接 | 上传人 |
 |--------|----------|----------|----------|
+| DHCM00019—LH750—贝克曼（有接口程序）.docx | 2025-09-07 14:11:06 | [DHCM00019—LH750—贝克曼（有接口程序）](assets/DHCM00019—LH750—贝克曼（有接口程序）.docx) | |
+
+| DHCM00019—LH750—贝克曼.docx | 2025-09-07 14:11:06 | [DHCM00019—LH750—贝克曼](assets/DHCM00019—LH750—贝克曼.docx) | |
+
 | DHCM00001-AVE766尿机.docx | 2025-09-07 13:53:32 | [DHCM00001-AVE766尿机](assets/DHCM00001-AVE766尿机.docx) | |
 
 | DHCM00001-AVE取图(DemoM前处理).docx | 2025-09-07 13:53:32 | [DHCM00001-AVE取图(DemoM前处理)](assets/DHCM00001-AVE取图(DemoM前处理).docx) | |
