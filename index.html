@@ -387,6 +387,43 @@
         });
 
         /**
+         * 触发GitHub工作流以更新Markdown文档
+         */
+        async function triggerWorkflow(filename, filePath, token, username, repo) {
+            const timestamp = new Date().toISOString();
+            try {
+                const response = await fetch(
+                    `https://api.github.com/repos/${username}/${repo}/dispatches`,
+                    {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `token ${token}`,
+                            'Accept': 'application/vnd.github.v3+json',
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            event_type: 'file_uploaded',
+                            client_payload: {
+                                filename: filename,
+                                file_path: filePath,
+                                timestamp: timestamp
+                            }
+                        })
+                    }
+                );
+                
+                if (!response.ok) {
+                    throw new Error(`触发工作流失败: ${response.status}`);
+                }
+                console.log('工作流已触发，将更新文档');
+            } catch (error) {
+                console.error('触发工作流时出错:', error);
+                // 工作流触发失败不影响文件上传结果，但会影响文档更新
+                showMessage(`文件上传成功，但更新记录失败: ${error.message}`, 'info');
+            }
+        }
+
+        /**
          * 获取文件在GitHub上的SHA（如果存在）
          */
         async function getFileSha(token, username, repo, branch, path, filename) {
@@ -427,6 +464,7 @@
         async function uploadFileToGitHub(file, token, username, repo, branch, path, fileIndex) {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
+                const fullFilePath = path + file.name;
                 
                 // 读取文件内容并转换为Base64
                 reader.onload = async (event) => {
@@ -436,7 +474,6 @@
                         
                         // 获取文件内容（移除data URL前缀）
                         const base64Content = event.target.result.split(',')[1];
-                        const fullPath = path + file.name;
                         
                         // 获取现有文件的SHA（如果存在）
                         const sha = await getFileSha(token, username, repo, branch, path, file.name);
@@ -458,9 +495,9 @@
                         
                         // 发送上传请求
                         const response = await fetch(
-                            `https://api.github.com/repos/${username}/${repo}/contents/${fullPath}`,
+                            `https://api.github.com/repos/${username}/${repo}/contents/${fullFilePath}`,
                             {
-                                method: sha ? 'PUT' : 'PUT', // 新增和更新都用PUT方法
+                                method: 'PUT',
                                 headers: {
                                     'Authorization': `token ${token}`,
                                     'Content-Type': 'application/json',
@@ -477,6 +514,9 @@
                             const error = await response.json();
                             throw new Error(error.message || `HTTP错误: ${response.status}`);
                         }
+                        
+                        // 上传成功后触发工作流更新Markdown
+                        await triggerWorkflow(file.name, fullFilePath, token, username, repo);
                         
                         // 更新进度：上传完成
                         updateProgress(fileIndex, 100);
@@ -508,3 +548,4 @@
     </script>
 </body>
 </html>
+    
