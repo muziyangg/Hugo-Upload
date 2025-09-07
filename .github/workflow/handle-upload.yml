@@ -1,31 +1,52 @@
-name: Deploy to GitHub Pages
+name: Build and Deploy Hugo Site
 
+# 触发条件：当推送到主分支时运行
 on:
   push:
     branches: [ main ]
   pull_request:
     branches: [ main ]
-  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      pages: write
-      id-token: write
+    
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        
-      - name: Setup Pages
-        uses: actions/configure-pages@v4
-        
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
+      # 步骤1：检出代码仓库
+      - name: Checkout code
+        uses: actions/checkout@v3
         with:
-          path: '.'
+          submodules: true  # 递归获取子模块（如果有的话）
+          fetch-depth: 0    # 拉取所有历史提交
+
+      # 步骤2：安装Hugo（如果需要使用Hugo生成网站）
+      - name: Setup Hugo
+        uses: peaceiris/actions-hugo@v2
+        with:
+          hugo-version: 'latest'
+          # 如果需要扩展版，可以启用下面这行
+          # extended: true
+
+      # 步骤3：运行自定义Python脚本处理上传内容
+      - name: Process uploads
+        run: |
+          python -m pip install --upgrade pip
+          # 如果你的脚本有依赖，可以在这里安装
+          # pip install -r requirements.txt
+          python process_upload.py
+
+      # 步骤4：生成静态网站
+      - name: Build site
+        run: |
+          # 如果使用Hugo生成
+          # hugo --minify
           
+          # 如果是其他方式生成，可以替换上面的命令
+          echo "Building site..."
+
+      # 步骤5：部署到GitHub Pages（如果需要）
       - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./  # 发布目录，根据实际情况修改
