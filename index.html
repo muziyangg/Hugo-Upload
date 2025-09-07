@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文件上传</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
+    <div class="w-full max-w-md bg-white rounded-lg shadow-md p-8">
+        <h1 class="text-2xl font-bold text-center mb-6 text-gray-800">文件上传</h1>
+        
+        <form id="uploadForm" class="space-y-4">
+            <div>
+                <label for="file" class="block text-sm font-medium text-gray-700 mb-1">选择文件</label>
+                <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
+                    <div class="space-y-1 text-center">
+                        <i class="fa fa-cloud-upload text-3xl text-gray-400 mb-2"></i>
+                        <div class="flex text-sm text-gray-600">
+                            <label for="file" class="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none">
+                                <span>上传文件</span>
+                                <input id="file" name="file" type="file" class="sr-only">
+                            </label>
+                            <p class="pl-1">或拖放文件到此处</p>
+                        </div>
+                        <p class="text-xs text-gray-500">支持所有文件类型</p>
+                    </div>
+                </div>
+            </div>
+            
+            <button type="submit" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                <i class="fa fa-paper-plane mr-2"></i> 上传文件
+            </button>
+        </form>
+        
+        <div id="message" class="mt-4 hidden"></div>
+        
+        <div class="mt-6 pt-6 border-t border-gray-200">
+            <h2 class="text-lg font-medium text-gray-800 mb-3">最近上传</h2>
+            <div id="recentUploads" class="space-y-2 max-h-40 overflow-y-auto">
+                <!-- 最近上传的文件将通过JavaScript动态加载 -->
+                <p class="text-gray-500 text-sm">加载最近上传的文件...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 处理文件上传
+        document.getElementById('uploadForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const fileInput = document.getElementById('file');
+            const file = fileInput.files[0];
+            const messageDiv = document.getElementById('message');
+            
+            if (!file) {
+                showMessage('请选择一个文件', 'error');
+                return;
+            }
+            
+            try {
+                showMessage('正在上传文件...', 'info');
+                
+                // 创建FormData对象
+                const formData = new FormData();
+                formData.append('file', file);
+                
+                // 上传文件到GitHub Gist作为临时存储
+                const response = await fetch('https://api.github.com/gists', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': 'token ' + 'YOUR_GITHUB_TOKEN', // 本地测试时使用实际Token
+                        'Accept': 'application/vnd.github.v3+json'
+                    },
+                    body: JSON.stringify({
+                        files: {
+                            [file.name]: {
+                                content: await fileToBase64(file)
+                            }
+                        },
+                        public: false
+                    })
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    showMessage(`文件 "${file.name}" 上传成功！`, 'success');
+                    fileInput.value = '';
+                    
+                    // 触发GitHub Actions工作流
+                    await triggerGitHubAction(file.name, result.html_url);
+                    loadRecentUploads();
+                } else {
+                    showMessage(`上传失败: ${await response.text()}`, 'error');
+                }
+                
+            } catch (error) {
+                showMessage(`上传失败: ${error.message}`, 'error');
+            }
+        });
+        
+        // 将文件转换为base64
+        function fileToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = () => {
+                    resolve(reader.result.split(',')[1]);
+                };
+                reader.onerror = reject;
+            });
+        }
+        
+        // 触发GitHub Actions工作流
+        async function triggerGitHubAction(filename, fileUrl) {
+            const response = await fetch('https://api.github.com/repos/muziyangg/Hugo-Upload/dispatches', {
+                method: 'POST',
+                headers: {
+                    'Authorization': 'token ' + 'YOUR_GITHUB_TOKEN', // 本地测试时使用实际Token
+                    'Accept': 'application/vnd.github.v3+json',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    event_type: 'file_uploaded',
+                    client_payload: {
+                        filename: filename,
+                        file_url: fileUrl
+                    }
+                })
+            });
+            
+            return response.ok;
+        }
+        
+        // 显示消息
+        function showMessage(text, type) {
+            const messageDiv = document.getElementById('message');
+            messageDiv.textContent = text;
+            messageDiv.className = 'mt-4 p-3 rounded-md';
+            
+            if (type === 'success') {
+                messageDiv.classList.add('bg-green-100', 'text-green-800');
+            } else if (type === 'error') {
+                messageDiv.classList.add('bg-red-100', 'text-red-800');
+            } else {
+                messageDiv.classList.add('bg-blue-100', 'text-blue-800');
+            }
+            
+            messageDiv.classList.remove('hidden');
+            
+            // 3秒后自动隐藏消息
+            setTimeout(() => {
+                messageDiv.classList.add('hidden');
+            }, 3000);
+        }
+        
+        // 加载最近上传的文件
+        async function loadRecentUploads() {
+            const container = document.getElementById('recentUploads');
+            
+            try {
+                // 从GitHub仓库加载upload.md
+                const response = await fetch('https://raw.githubusercontent.com/muziyangg/Hugo-Upload/main/src/upload.md');
+                const mdContent = await response.text();
+                
+                // 解析Markdown表格
+                const lines = mdContent.split('\n');
+                let tableStart = false;
+                const uploads = [];
+                
+                for (const line of lines) {
+                    if (line.includes('| 文件名 | 上传时间 | 文件路径 |')) {
+                        tableStart = true;
+                        continue;
+                    }
+                    
+                    if (tableStart && line.startsWith('|')) {
+                        const parts = line.split('|').map(p => p.trim()).filter(p => p);
+                        if (parts.length === 3) {
+                            uploads.push({
+                                name: parts[0],
+                                date: parts[1],
+                                path: parts[2]
+                            });
+                        }
+                    }
+                }
+                
+                if (uploads.length === 0) {
+                    container.innerHTML = '<p class="text-gray-500 text-sm">暂无上传记录</p>';
+                    return;
+                }
+                
+                // 显示最近5条记录
+                container.innerHTML = '';
+                uploads.slice(0, 5).forEach(upload => {
+                    const item = document.createElement('div');
+                    item.className = 'flex justify-between items-center p-2 bg-gray-50 rounded';
+                    item.innerHTML = `
+                        <div>
+                            <p class="text-sm font-medium text-gray-900">${upload.name}</p>
+                            <p class="text-xs text-gray-500">${new Date(upload.date).toLocaleString()}</p>
+                        </div>
+                        <a href="${upload.path}" target="_blank" class="text-blue-600 hover:text-blue-800">
+                            <i class="fa fa-download"></i>
+                        </a>
+                    `;
+                    container.appendChild(item);
+                });
+                
+            } catch (error) {
+                container.innerHTML = `<p class="text-red-500 text-sm">加载失败: ${error.message}</p>`;
+            }
+        }
+        
+        // 页面加载时加载最近上传的文件
+        window.addEventListener('load', loadRecentUploads);
+        
+        // 实现拖放功能
+        const dropArea = document.querySelector('.border-dashed');
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, preventDefaults, false);
+        });
+        
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropArea.addEventListener(eventName, highlight, false);
+        });
+        
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, unhighlight, false);
+        });
+        
+        function highlight() {
+            dropArea.classList.add('border-blue-500', 'bg-blue-50');
+        }
+        
+        function unhighlight() {
+            dropArea.classList.remove('border-blue-500', 'bg-blue-50');
+        }
+        
+        dropArea.addEventListener('drop', handleDrop, false);
+        
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const file = dt.files[0];
+            
+            if (file) {
+                document.getElementById('file').files = dt.files;
+            }
+        }
+    </script>
+</body>
+</html>

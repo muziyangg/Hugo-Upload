@@ -1,0 +1,38 @@
+name: Handle File Upload
+
+# 触发条件：当接收到repository_dispatch事件且event_type为file_uploaded时
+on:
+  repository_dispatch:
+    types: [file_uploaded]
+
+jobs:
+  process-upload:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 检出代码仓库
+        uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.UPLOAD_TOKEN }}  # 使用配置的Token确保有推送权限
+          
+      - name: 设置Python环境
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+          
+      - name: 安装依赖
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests  # 确保安装requests库用于文件下载
+          
+      - name: 处理上传的文件
+        run: |
+          python process_upload.py "${{ github.event.client_payload.filename }}" "${{ github.event.client_payload.file_url }}"
+          
+      - name: 提交更改
+        run: |
+          git config --global user.name 'GitHub Actions'
+          git config --global user.email 'actions@github.com'
+          git add .
+          git commit -m "自动上传文件: ${{ github.event.client_payload.filename }}" || echo "没有需要提交的更改"
+          git push
