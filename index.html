@@ -361,7 +361,7 @@
                 const successFiles = [];
                 for (let i = 0; i < files.length; i++) {
                     const file = files[i];
-                    try {
+                    /*try {
                         // 上传单个文件（仅上传，不触发单独工作流）
                         await uploadFileToGitHub(file, token, username, repo, branch, path, i);
                         successFiles.push({
@@ -371,7 +371,7 @@
                     } catch (error) {
                         showMessage(`文件 "${file.name}" 上传失败: ${error.message}`, 'error');
                         console.error(`文件 "${file.name}" 上传失败:`, error);
-                    }
+                    }*/
                 }
                 
                 // 所有文件上传完成后，仅通过file_uploaded触发工作流更新MD文档

@@ -70,7 +70,10 @@ def load_records():
         file_size = os.path.getsize(UPLOAD_RECORDS)
         print(f"加载记录文件: {UPLOAD_RECORDS} (大小: {file_size} bytes)")
         with open(UPLOAD_RECORDS, 'r', encoding='utf-8') as f:
-            return json.load(f)
+            try:
+                return json.load(f)
+            except:
+                return []
     print(f"记录文件不存在，创建新列表: {UPLOAD_RECORDS}")
     return []
 
