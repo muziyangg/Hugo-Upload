@@ -1,9 +1,11 @@
-name: Handle File Upload & Compile
+name: Handle File Upload & Compile Personal Website
 
-# 触发条件：支持仓库事件和手动触发
+# 触发条件：支持仓库事件、push事件和手动触发
 on:
   repository_dispatch:
     types: [file_uploaded]
+  push:
+    branches: [ main ]  # 在main分支有push时触发
   workflow_dispatch:  # 允许手动触发工作流
     inputs:
       compileOnly:
@@ -27,7 +29,7 @@ jobs:
         with:
           python-version: '3.9'
           
-      - name: 安装依赖
+      - name: 安装Python依赖
         run: |
           python -m pip install --upgrade pip
           pip install requests  # 确保安装requests库用于文件下载
@@ -37,14 +39,25 @@ jobs:
         run: |
           python process_upload.py "${{ github.event.client_payload.filename || '' }}" "${{ github.event.client_payload.file_url || '' }}"
           
-      - name: 执行编译过程
+      - name: 设置Node.js环境（用于网站编译）
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16'
+          cache: 'npm'
+          
+      - name: 安装网站依赖
         run: |
-          echo "开始执行编译..."
-          # 这里添加实际的编译命令，例如：
-          # python compile_files.py
-          # 或者对于静态网站可以是：
-          # npm run build
-          echo "编译完成"
+          # 假设网站源代码在website目录下
+          cd website || echo "网站目录不存在"
+          npm install
+          
+      - name: 执行网站编译过程
+        run: |
+          echo "开始执行个人网站编译..."
+          # 进入网站目录并执行编译命令
+          cd website || exit 1
+          npm run build
+          echo "网站编译完成"
           
       - name: 提交更改
         run: |
@@ -53,9 +66,10 @@ jobs:
           git add .
           # 根据不同触发条件设置不同的提交信息
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            git commit -m "手动触发编译: $(date +'%Y-%m-%d %H:%M:%S')" || echo "没有需要提交的更改"
+            git commit -m "手动触发网站编译: $(date +'%Y-%m-%d %H:%M:%S')" || echo "没有需要提交的更改"
+          elif [ "${{ github.event_name }}" = "push" ]; then
+            git commit -m "自动处理push后编译网站: $(date +'%Y-%m-%d %H:%M:%S')" || echo "没有需要提交的更改"
           else
-            git commit -m "自动处理并编译文件: ${{ github.event.client_payload.filename || '未知文件' }}" || echo "没有需要提交的更改"
+            git commit -m "自动处理文件并编译网站: ${{ github.event.client_payload.filename || '未知文件' }}" || echo "没有需要提交的更改"
           fi
           git push
-    
