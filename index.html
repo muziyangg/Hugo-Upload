@@ -362,7 +362,7 @@
                 for (let i = 0; i < files.length; i++) {
                     const file = files[i];
                     try {
-                        // 上传单个文件
+                        // 上传单个文件（仅上传，不触发单独工作流）
                         await uploadFileToGitHub(file, token, username, repo, branch, path, i);
                         successFiles.push({
                             name: file.name,
@@ -374,10 +374,10 @@
                     }
                 }
                 
-                // 所有文件上传完成后，触发一次批量工作流
+                // 所有文件上传完成后，仅通过file_uploaded触发工作流更新MD文档
                 if (successFiles.length > 0) {
                     await triggerBatchWorkflow(successFiles, token, username, repo);
-                    showMessage(`成功上传 ${successFiles.length}/${files.length} 个文件，记录已更新`, 'success');
+                    showMessage(`成功上传 ${successFiles.length}/${files.length} 个文件，已通过file_uploaded更新文档`, 'success');
                 }
                 
                 // 清空文件列表
@@ -392,7 +392,7 @@
             }
         });
 
-        // 批量触发工作流函数
+        // 批量触发工作流函数（仅使用file_uploaded类型）
         async function triggerBatchWorkflow(successFiles, token, username, repo) {
             const batchTimestamp = new Date().toISOString();
             try {
@@ -406,7 +406,7 @@
                             'Content-Type': 'application/json'
                         },
                         body: JSON.stringify({
-                            event_type: 'file_uploaded',
+                            event_type: 'file_uploaded',  // 仅使用此类型触发工作流
                             client_payload: {
                                 batch_files: successFiles,  // 传递批量文件列表
                                 batch_timestamp: batchTimestamp  // 统一时间戳
@@ -426,7 +426,7 @@
             }
         }
 
-        // 上传文件到GitHub
+        // 上传文件到GitHub（仅上传文件，不触发任何工作流）
         async function uploadFileToGitHub(file, token, username, repo, branch, path, fileIndex) {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
