@@ -3,291 +3,340 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>前端工具箱</title>
+    <title>文件上传器</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="icon" href="/icon/easytools.ico" type="image/x-icon">
     <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
-    
-    <!-- 配置Tailwind自定义主题 -->
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        primary: '#3B82F6',
-                        secondary: '#10B981',
-                        neutral: '#1F2937',
-                        light: '#F3F4F6',
-                        danger: '#EF4444'
-                    },
-                    fontFamily: {
-                        inter: ['Inter', 'system-ui', 'sans-serif'],
-                    },
-                }
-            }
+    <style>
+        .drop-area {
+            border: 2px dashed #ccc;
+            transition: all 0.3s ease;
         }
-    </script>
-    
-    <style type="text/tailwindcss">
-        @layer utilities {
-            .content-auto {
-                content-visibility: auto;
-            }
-            .text-shadow {
-                text-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            }
-            .bg-gradient-primary {
-                background: linear-gradient(135deg, #3B82F6 0%, #2575fc 100%);
-            }
+        .drop-area.active {
+            border-color: #4CAF50;
+            background-color: rgba(76, 175, 80, 0.1);
+        }
+        .file-item {
+            animation: fadeIn 0.3s ease;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .error-message {
+            animation: shake 0.5s ease;
+        }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
         }
     </style>
 </head>
-<body class="font-inter bg-gray-50 text-neutral min-h-screen">
-    <div class="container mx-auto px-4 py-8">
-        <!-- 头部区域 -->
-        <header class="text-center py-8 mb-6">
-            <div class="bg-gradient-primary rounded-3xl p-10 shadow-lg mb-8">
-                <h1 class="text-[clamp(1.8rem,4vw,3rem)] font-bold text-white mb-4 text-shadow">前端工具箱</h1>
-                <p class="text-white/90 text-[clamp(1rem,2vw,1.2rem)] max-w-2xl mx-auto">
-                    一站式前端开发工具集合，提高您的开发效率
-                </p>
-            </div>
-            
-            <!-- 搜索框区域 -->
-            <div class="max-w-2xl mx-auto px-4">
-                <div class="relative mt-8">
-                    <input type="text" id="searchInput" placeholder="搜索工具..." class="w-full py-3 px-4 pr-10 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
-                    <i class="fa fa-search absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
-                </div>
-
-                <!-- 添加分类筛选区域 -->
-                <div class="mt-4 flex flex-wrap gap-2" id="categoryFilters">
-                    <!-- 分类按钮将通过JS动态生成 -->
-                </div>
-            </div>
+<body class="bg-gray-100 min-h-screen">
+    <div class="container mx-auto px-4 py-8 max-w-3xl">
+        <header class="text-center mb-8">
+            <h1 class="text-3xl font-bold text-gray-800">文件上传器</h1>
+            <p class="text-gray-600 mt-2">拖放文件或选择文件进行上传</p>
         </header>
-        
-        <!-- 工具网格 -->
-        <div class="tools-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mt-8">
-            <!-- 工具卡片将由JavaScript动态生成 -->
-        </div>
 
-        <!-- 工具内容容器 -->
-        <div id="toolContent" class="mt-12 hidden">
-            <div class="flex justify-between items-center mb-6">
-                <h2 id="toolTitle" class="text-2xl font-bold text-neutral"></h2>
-                <button id="backToTools" class="px-4 py-2 bg-primary hover:bg-primary/90 text-white rounded-md transition-colors flex items-center shadow-sm">
-                    <i class="fa fa-arrow-left mr-1"></i> 返回工具列表
+        <!-- 认证令牌设置 -->
+        <div class="bg-white p-4 rounded-lg shadow mb-6">
+            <h2 class="text-lg font-semibold mb-2">GitHub 认证设置</h2>
+            <p class="text-sm text-gray-500 mb-3">请输入具有仓库访问权限的个人访问令牌 (PAT)</p>
+            <div class="flex">
+                <input type="password" id="githubToken" 
+                       class="flex-1 px-4 py-2 border border-gray-300 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                       placeholder="输入GitHub个人访问令牌" />
+                <button id="saveToken" 
+                        class="bg-blue-500 text-white px-4 py-2 rounded-r-lg hover:bg-blue-600 transition">
+                    保存
                 </button>
             </div>
-            <div id="toolContentArea" class="bg-white rounded-xl shadow-md p-6 min-h-[500px]"></div>
+            <p class="text-xs text-gray-400 mt-2">令牌需要具备 repo 权限才能正常工作</p>
         </div>
-    </div>
-    
-    <!-- 页脚 -->
-    <footer class="bg-neutral text-gray-400 py-8 mt-16">
-        <div class="container mx-auto px-4">
-            <div class="flex flex-col md:flex-row justify-between items-center">
-                <div class="mb-4 md:mb-0">
-                    <p class="text-sm">© 2023 前端工具箱 - 为您提供便捷的开发体验</p>
-                </div>
-                <div class="flex space-x-6">
-                    <a href="#" class="text-gray-400 hover:text-white transition-colors text-sm">使用条款</a>
-                    <a href="#" class="text-gray-400 hover:text-white transition-colors text-sm">隐私政策</a>
-                    <a href="#" class="text-gray-400 hover:text-white transition-colors text-sm">联系我们</a>
-                </div>
+
+        <!-- 拖放区域 -->
+        <div id="dropArea" class="drop-area bg-white p-8 rounded-lg shadow text-center mb-6">
+            <i class="fa fa-cloud-upload text-5xl text-gray-400 mb-4"></i>
+            <h2 class="text-xl font-semibold mb-2">拖放文件到这里</h2>
+            <p class="text-gray-500 mb-4">或者</p>
+            <label class="inline-block bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-600 cursor-pointer transition">
+                <i class="fa fa-file-o mr-2"></i>选择文件
+                <input type="file" id="fileInput" multiple class="hidden" />
+            </label>
+        </div>
+
+        <!-- 文件列表 -->
+        <div id="fileList" class="bg-white rounded-lg shadow overflow-hidden mb-6">
+            <div class="p-4 border-b border-gray-200">
+                <h2 class="text-lg font-semibold">文件列表</h2>
+            </div>
+            <div id="filesContainer" class="p-4">
+                <!-- 文件项将在这里动态添加 -->
+                <p class="text-gray-500 text-center py-6" id="emptyMessage">暂无文件</p>
             </div>
         </div>
-    </footer>
+
+        <!-- 上传按钮 -->
+        <div class="text-center">
+            <button id="uploadBtn" class="bg-green-500 text-white px-8 py-3 rounded-lg hover:bg-green-600 transition disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                <i class="fa fa-upload mr-2"></i>上传所有文件
+            </button>
+        </div>
+
+        <!-- 状态消息 -->
+        <div id="statusMessage" class="mt-6 p-4 rounded-lg hidden"></div>
+    </div>
 
     <script>
-        // 全局变量存储工具数据和分类
-        let allTools = [];
-        let currentCategory = 'all';
+        // DOM元素
+        const dropArea = document.getElementById('dropArea');
+        const fileInput = document.getElementById('fileInput');
+        const fileList = document.getElementById('filesContainer');
+        const emptyMessage = document.getElementById('emptyMessage');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const statusMessage = document.getElementById('statusMessage');
+        const githubToken = document.getElementById('githubToken');
+        const saveToken = document.getElementById('saveToken');
+        
+        // 存储选中的文件
+        let files = [];
+        
+        // 从本地存储加载令牌
+        githubToken.value = localStorage.getItem('githubToken') || '';
 
-        // 渲染工具卡片
-        function renderTools(toolsArray) {
-            const toolsGrid = document.querySelector('.tools-grid');
-            toolsGrid.innerHTML = '';
+        // 保存令牌到本地存储
+        saveToken.addEventListener('click', () => {
+            localStorage.setItem('githubToken', githubToken.value);
+            showMessage('令牌已保存', 'success');
+        });
+
+        // 拖放事件处理
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, preventDefaults, false);
+        });
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropArea.addEventListener(eventName, highlight, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, unhighlight, false);
+        });
+
+        function highlight() {
+            dropArea.classList.add('active');
+        }
+
+        function unhighlight() {
+            dropArea.classList.remove('active');
+        }
+
+        // 处理文件拖放
+        dropArea.addEventListener('drop', handleDrop, false);
+
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const droppedFiles = dt.files;
             
-            if (toolsArray.length === 0) {
-                toolsGrid.innerHTML = `
-                    <div class="col-span-full text-center py-12">
-                        <i class="fa fa-search text-5xl text-gray-300 mb-4"></i>
-                        <p class="text-xl text-gray-500">未找到匹配的工具</p>
+            if (droppedFiles.length) {
+                addFiles(droppedFiles);
+            }
+        }
+
+        // 处理文件选择
+        fileInput.addEventListener('change', function() {
+            if (this.files.length) {
+                addFiles(this.files);
+            }
+        });
+
+        // 添加文件到列表
+        function addFiles(newFiles) {
+            // 转换为数组以便处理
+            const fileArray = Array.from(newFiles);
+            
+            // 添加新文件并去重
+            fileArray.forEach(file => {
+                if (!files.some(f => f.name === file.name && f.size === file.size)) {
+                    files.push(file);
+                }
+            });
+            
+            // 更新文件列表显示
+            renderFileList();
+            
+            // 启用上传按钮
+            uploadBtn.disabled = false;
+        }
+
+        // 渲染文件列表
+        function renderFileList() {
+            // 清空现有列表
+            fileList.innerHTML = '';
+            
+            // 隐藏空消息
+            emptyMessage.style.display = files.length > 0 ? 'none' : 'block';
+            
+            // 添加文件项
+            files.forEach((file, index) => {
+                const fileSize = formatFileSize(file.size);
+                const fileItem = document.createElement('div');
+                fileItem.className = 'file-item flex items-center justify-between p-3 border-b border-gray-100 last:border-0';
+                fileItem.innerHTML = `
+                    <div class="flex items-center">
+                        <i class="fa fa-file-o text-gray-500 mr-3"></i>
+                        <div>
+                            <div class="font-medium">${file.name}</div>
+                            <div class="text-sm text-gray-500">${fileSize}</div>
+                        </div>
                     </div>
+                    <button class="text-red-500 hover:text-red-700 transition remove-file" data-index="${index}">
+                        <i class="fa fa-trash-o"></i>
+                    </button>
                 `;
+                fileList.appendChild(fileItem);
+            });
+            
+            // 添加删除事件监听
+            document.querySelectorAll('.remove-file').forEach(button => {
+                button.addEventListener('click', function() {
+                    const index = parseInt(this.getAttribute('data-index'));
+                    files.splice(index, 1);
+                    renderFileList();
+                    
+                    // 如果没有文件了，禁用上传按钮
+                    if (files.length === 0) {
+                        uploadBtn.disabled = true;
+                    }
+                });
+            });
+        }
+
+        // 格式化文件大小
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        // 显示消息
+        function showMessage(text, type = 'info') {
+            statusMessage.textContent = text;
+            statusMessage.className = `mt-6 p-4 rounded-lg ${
+                type === 'success' ? 'bg-green-100 text-green-800' :
+                type === 'error' ? 'bg-red-100 text-red-800 error-message' :
+                'bg-blue-100 text-blue-800'
+            }`;
+            
+            // 5秒后自动隐藏消息
+            setTimeout(() => {
+                statusMessage.classList.add('hidden');
+            }, 5000);
+        }
+
+        // 上传文件
+        uploadBtn.addEventListener('click', async () => {
+            const token = localStorage.getItem('githubToken');
+            
+            // 检查令牌是否存在
+            if (!token) {
+                showMessage('请先设置GitHub个人访问令牌', 'error');
                 return;
             }
             
-            toolsArray.forEach(tool => {
-                const toolCard = document.createElement('div');
-                toolCard.className = 'bg-white rounded-xl shadow-md overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1 cursor-pointer';
-                toolCard.onclick = () => loadToolContent(tool);
-                
-                toolCard.innerHTML = `
-                    <div class="h-36 bg-primary/5 flex items-center justify-center">
-                        <i class="fa ${tool.icon} text-5xl text-primary"></i>
-                    </div>
-                    <div class="p-5">
-                        <h3 class="text-lg font-semibold text-neutral mb-2">${tool.title}</h3>
-                        <p class="text-gray-600 text-sm mb-4 line-clamp-2">${tool.description}</p>
-                        <div class="flex flex-wrap gap-2">
-                            ${tool.tags.map(tag => `
-                                <span class="bg-primary/10 text-primary text-xs px-3 py-1 rounded-full">${tag}</span>
-                            `).join('')}
-                        </div>
-                    </div>
-                `;
-                
-                toolsGrid.appendChild(toolCard);
-            });
-        }
-
-        // 加载工具内容
-        function loadToolContent(tool) {
-            // 显示加载状态
-            document.querySelector('.tools-grid').classList.add('hidden');
-            document.getElementById('toolContent').classList.remove('hidden');
-            document.getElementById('toolTitle').textContent = tool.title;
-            document.getElementById('toolContentArea').innerHTML = '<div class="flex justify-center items-center h-64"><div class="w-12 h-12 border-4 border-gray-200 border-t-primary rounded-full animate-spin"></div></div>';
-
-            // 使用ID选择器隐藏搜索框容器
-            const searchInput = document.getElementById('searchInput');
-            if (searchInput) {
-                const searchContainer = searchInput.closest('.max-w-2xl.mx-auto');
-                if (searchContainer) {
-                    searchContainer.classList.add('hidden');
-                }
+            // 检查是否有文件要上传
+            if (files.length === 0) {
+                showMessage('没有文件可上传', 'error');
+                return;
             }
-
-            // 加载工具页面内容
-            fetch(tool.link)
-                .then(response => response.text())
-                .then(html => {
-                    // 解析HTML并提取主要内容
-                    const parser = new DOMParser();
-                    const doc = parser.parseFromString(html, 'text/html');
-                    const mainContent = doc.querySelector('main').innerHTML;
-                    
-                    // 将内容插入到容器
-                    document.getElementById('toolContentArea').innerHTML = mainContent;
-                    
-                    // 自动滚动到工具内容区域
-                    document.getElementById('toolContent').scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    
-                    // 执行工具页面中的脚本
-                    const scripts = doc.querySelectorAll('main script');
-                    scripts.forEach(script => {
-                        const newScript = document.createElement('script');
-                        Array.from(script.attributes).forEach(attr => {
-                            newScript.setAttribute(attr.name, attr.value);
-                        });
-                        newScript.textContent = script.textContent;
-                        document.getElementById('toolContentArea').appendChild(newScript);
-                    });
-                })
-                .catch(error => {
-                    document.getElementById('toolContentArea').innerHTML = `
-                        <div class="text-center py-12">
-                            <i class="fa fa-exclamation-triangle text-5xl text-danger mb-4"></i>
-                            <p class="text-xl text-gray-700">加载工具失败</p>
-                            <p class="text-gray-500 mt-2">${error.message}</p>
-                        </div>
-                    `;
-                });
-        }
-
-
-        // 返回工具列表
-        document.addEventListener('DOMContentLoaded', () => {
-            document.getElementById('backToTools').addEventListener('click', () => {
-                document.querySelector('.tools-grid').classList.remove('hidden');
-                document.getElementById('toolContent').classList.add('hidden');
-
-                // 使用ID选择器显示搜索框容器
-                const searchInput = document.getElementById('searchInput');
-                if (searchInput) {
-                    const searchContainer = searchInput.closest('.max-w-2xl.mx-auto');
-                    if (searchContainer) {
-                        searchContainer.classList.remove('hidden');
-                    }
+            
+            uploadBtn.disabled = true;
+            uploadBtn.innerHTML = '<i class="fa fa-spinner fa-spin mr-2"></i>上传中...';
+            
+            try {
+                // 逐个上传文件
+                for (const file of files) {
+                    await uploadFile(file, token);
                 }
-
-                // 滚动到页面顶部
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-            });
+                
+                showMessage(`成功上传 ${files.length} 个文件`, 'success');
+                
+                // 清空文件列表
+                files = [];
+                renderFileList();
+            } catch (error) {
+                console.error('上传失败:', error);
+                
+                // 处理认证错误
+                if (error.message.includes('401')) {
+                    showMessage('上传失败: 认证信息错误，请检查您的GitHub令牌', 'error');
+                } else {
+                    showMessage(`上传失败: ${error.message}`, 'error');
+                }
+            } finally {
+                uploadBtn.disabled = false;
+                uploadBtn.innerHTML = '<i class="fa fa-upload mr-2"></i>上传所有文件';
+            }
         });
 
-        // 加载分类数据
-        function loadCategories() {
-            fetch('classify.json')
-                .then(response => response.json())
-                .then(data => {
-                    const categoryContainer = document.getElementById('categoryFilters');
-                    // 添加全部分类按钮
-                    const allButton = document.createElement('button');
-                    allButton.className = 'category-btn px-3 py-1 rounded-full bg-primary text-white text-sm';
-                    allButton.textContent = '全部';
-                    allButton.dataset.category = 'all';
-                    allButton.addEventListener('click', () => filterByCategory('all'));
-                    categoryContainer.appendChild(allButton);
-                    
-                    data.categories.forEach(category => {
-                        const button = document.createElement('button');
-                        button.className = 'category-btn px-3 py-1 rounded-full bg-gray-200 text-gray-700 text-sm';
-                        button.textContent = category.name;
-                        button.dataset.category = category.id;
-                        button.addEventListener('click', () => filterByCategory(category.id));
-                        categoryContainer.appendChild(button);
-                    });
-                });
-        }
-
-        // 分类筛选函数
-        function filterByCategory(category) {
-            currentCategory = category;
-            // 更新按钮样式
-            document.querySelectorAll('.category-btn').forEach(btn => {
-                if (btn.dataset.category === category) {
-                    btn.classList.add('bg-primary', 'text-white');
-                    btn.classList.remove('bg-gray-200', 'text-gray-700');
-                } else {
-                    btn.classList.remove('bg-primary', 'text-white');
-                    btn.classList.add('bg-gray-200', 'text-gray-700');
-                }
+        // 实际上传文件的函数
+        async function uploadFile(file, token) {
+            // 这里替换为你的GitHub用户名和仓库名
+            const githubUsername = 'your-username';
+            const githubRepo = 'your-repo';
+            
+            // 创建FormData
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            // 发送文件到你的后端或直接调用GitHub API
+            // 注意：直接从浏览器调用GitHub API有安全风险，建议通过中间服务器
+            const response = await fetch(`https://api.github.com/repos/${githubUsername}/${githubRepo}/dispatches`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `token ${token}`,
+                    'Accept': 'application/vnd.github.v3+json'
+                },
+                body: JSON.stringify({
+                    event_type: 'file_uploaded',
+                    client_payload: {
+                        filename: file.name,
+                        // 对于大文件，建议先上传到临时存储，再传递URL
+                        // 这里仅作为示例，实际应用需要调整
+                        file_content: await fileToBase64(file)
+                    }
+                })
             });
-            // 应用筛选
-            applyFilters();
+            
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.message || `HTTP错误: ${response.status}`);
+            }
+            
+            return response;
         }
 
-        // 综合搜索和分类筛选
-        function applyFilters() {
-            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-            const filteredTools = allTools.filter(tool => {
-                const matchesSearch = tool.title.toLowerCase().includes(searchTerm) || tool.description.toLowerCase().includes(searchTerm);
-                const matchesCategory = currentCategory === 'all' || tool.category === currentCategory;
-                return matchesSearch && matchesCategory;
+        // 将文件转换为Base64（小文件适用）
+        function fileToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = () => {
+                    // 移除data URL前缀
+                    resolve(reader.result.split(',')[1]);
+                };
+                reader.onerror = reject;
             });
-            renderTools(filteredTools);
         }
-
-        // 修改工具加载和初始化逻辑
-        function loadTools() {
-            fetch('tools.json')
-                .then(response => response.json())
-                .then(data => {
-                    allTools = data;
-                    renderTools(allTools);
-                    // 初始化分类筛选
-                    loadCategories();
-                    // 添加搜索框事件监听
-                    document.getElementById('searchInput').addEventListener('input', applyFilters);
-                });
-        }
-
-        // 页面加载时初始化
-        document.addEventListener('DOMContentLoaded', loadTools);
     </script>
 </body>
 </html>
+    
