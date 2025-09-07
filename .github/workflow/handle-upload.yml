@@ -6,6 +6,8 @@ on:
     types: [file_uploaded]
   push:
     branches: [ main ]  # 在main分支有push时触发
+  pull_request:
+    branches: [ main ]
   workflow_dispatch:  # 允许手动触发工作流
     inputs:
       compileOnly:
