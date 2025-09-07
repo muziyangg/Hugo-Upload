@@ -14,7 +14,7 @@ on:
 # 调整并发控制策略
 concurrency:
   group: ${{ github.ref }}-file-upload-${{ github.run_id }}  # 添加唯一的run_id
-  cancel-in-progress: false  # 不取消正在运行的工作流
+  cancel-in-progress: true  # 不取消正在运行的工作流
 
 jobs:
   build:
@@ -24,6 +24,11 @@ jobs:
       pages: write
       id-token: write
     steps:
+      - name: Print event info
+        run: |
+          echo "Event name: ${{ github.event_name }}"
+          echo "Event action: ${{ github.event.action }}"
+    
       - name: Checkout
         uses: actions/checkout@v4
         with:
