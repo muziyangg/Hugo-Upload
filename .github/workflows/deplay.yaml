@@ -3,40 +3,28 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches: [ main ]
+  pull_request:
+    branches: [ main ]
   workflow_dispatch:
   repository_dispatch:
-    types: [file_uploaded] # 保持原有事件类型，无需新增
+    types: [file_uploaded]
 
-# 关键：确保同一时间只有一个工作流运行，避免并发覆盖
+# 关键配置：限制同一时间只有一个工作流实例运行
 concurrency:
-  group: ${{ github.ref }}-file-upload
-  cancel-in-progress: false # 等待前一个工作流完成，不取消
+  group: ${{ github.ref }}-file-upload  # 基于分支的并发组
+  cancel-in-progress: false  # 不取消正在运行的工作流，等待其完成
 
 jobs:
   build:
     runs-on: ubuntu-latest
     permissions:
-      contents: write # 必须有写入权限（提交MD和JSON文件）
+      contents: write
       pages: write
       id-token: write
     steps:
-      - name: Checkout 代码
+      - name: Checkout
         uses: actions/checkout@v4
         with:
-<<<<<<< HEAD
-          fetch-depth: 0 # 拉取完整历史，避免Git提交冲突
-
-      - name: 拉取最新代码（防止本地代码落后）
-        run: git pull origin main
-        continue-on-error: true # 若本地已是最新，忽略错误
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.10' # 与本地开发环境一致
-
-      - name: 批量处理文件记录（调用Python脚本）
-=======
           fetch-depth: 0  # 获取完整历史，确保能拉取最新更改
           
       - name: 等待前序任务完成（额外保障）
@@ -54,49 +42,30 @@ jobs:
           python-version: '3.10'
           
       - name: Process uploaded files
->>>>>>> f25bd37a499f6e56483283df922e917266bdfd07
         if: github.event_name == 'repository_dispatch' && github.event.action == 'file_uploaded'
         run: |
-          # 关键：将GitHub事件中的batch_files（JSON）转成字符串，传递给Python
-          BATCH_FILES_JSON='${{ toJSON(github.event.client_payload.batch_files) }}'
-          BATCH_TIMESTAMP='${{ github.event.client_payload.batch_timestamp }}'
+          python upload.py "${{ github.event.client_payload.filename }}" "${{ github.event.client_payload.file_path }}" "${{ github.event.client_payload.timestamp }}"
+          echo "Markdown文件内容:"
+          cat src/upload.md
           
-          # 打印参数调试（可选，便于排查问题）
-          echo "批量文件JSON: $BATCH_FILES_JSON"
-          echo "批量时间戳: $BATCH_TIMESTAMP"
-          
-          # 调用Python批量处理脚本（传递JSON字符串和时间戳）
-          python upload.py "$BATCH_FILES_JSON" "$BATCH_TIMESTAMP"
-
-      - name: 提交批量修改到Git
+      - name: Commit changes
         if: github.event_name == 'repository_dispatch' && github.event.action == 'file_uploaded'
         run: |
-          # 配置Git用户信息（必须，否则无法提交）
           git config --global user.name 'GitHub Actions'
           git config --global user.email 'actions@github.com'
+          git pull origin main  # 再次拉取最新代码，防止冲突
+          git add src/upload.md upload_records.json
+          git commit -m "Update upload records for ${{ github.event.client_payload.filename }}" || echo "No changes to commit"
+          git push
           
-          # 检查是否有修改
-          git status
-          
-          # 添加并提交（仅提交MD和JSON文件，避免意外提交）
-          git add src/upload.md src/upload_records.json
-          git commit -m "Batch update upload records (${{ len(github.event.client_payload.batch_files) }} files)" || echo "No changes to commit"
-          
-          # 推送修改（需确保workflow有写入权限）
-          git push origin main
-
-      - name: 部署到GitHub Pages（原有逻辑不变）
+      - name: Setup Pages
         uses: actions/configure-pages@v4
-      - name: 上传Pages产物
+        
+      - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
           path: '.'
-<<<<<<< HEAD
-      - name: 部署Pages
-        uses: actions/deploy-pages@v4
-=======
           
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
->>>>>>> f25bd37a499f6e56483283df922e917266bdfd07
