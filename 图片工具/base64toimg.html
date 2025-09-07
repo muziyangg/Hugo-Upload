@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Base64转图片 | 在线转换工具</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    
+    <!-- 配置Tailwind自定义主题 -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3B82F6',
+                        secondary: '#10B981',
+                        neutral: '#1F2937',
+                        light: '#F3F4F6',
+                        danger: '#EF4444'
+                    },
+                    fontFamily: {
+                        inter: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .text-shadow {
+                text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+            .transition-height {
+                transition: max-height 0.3s ease-in-out;
+            }
+            .scrollbar-thin {
+                scrollbar-width: thin;
+            }
+            .scrollbar-thin::-webkit-scrollbar {
+                width: 4px;
+                height: 4px;
+            }
+            .scrollbar-thin::-webkit-scrollbar-thumb {
+                background-color: rgba(156, 163, 175, 0.5);
+                border-radius: 2px;
+            }
+        }
+    </style>
+</head>
+<body class="font-inter bg-gray-50 text-neutral min-h-screen flex flex-col">
+    <!-- 顶部导航 -->
+    <header class="bg-white shadow-sm sticky top-0 z-10">
+        <div class="container mx-auto px-4 py-4 flex justify-between items-center">
+            <div class="flex items-center space-x-2">
+                <i class="fa fa-image text-primary text-2xl"></i>
+                <h1 class="text-xl md:text-2xl font-bold text-neutral">Base64转图片工具</h1>
+            </div>
+            <div class="hidden md:flex items-center space-x-6">
+                <a href="#" class="text-gray-600 hover:text-primary transition-colors">
+                    <i class="fa fa-question-circle mr-1"></i>使用帮助
+                </a>
+                <a href="#" class="text-gray-600 hover:text-primary transition-colors">
+                    <i class="fa fa-history mr-1"></i>历史记录
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- 主要内容 -->
+    <main class="flex-grow container mx-auto px-4 py-8">
+        <!-- 介绍部分 -->
+        <div class="mb-8 text-center max-w-3xl mx-auto">
+            <h2 class="text-[clamp(1.5rem,3vw,2.5rem)] font-bold text-neutral mb-4 text-shadow">Base64编码转图片格式</h2>
+            <p class="text-gray-600 mb-6">将Base64编码字符串转换为PNG、JPG、GIF等图片格式，支持实时预览和下载</p>
+            <div class="flex flex-wrap justify-center gap-3 text-sm text-gray-500">
+                <span class="flex items-center"><i class="fa fa-check-circle text-secondary mr-1"></i>免费使用</span>
+                <span class="flex items-center"><i class="fa fa-check-circle text-secondary mr-1"></i>无需安装</span>
+                <span class="flex items-center"><i class="fa fa-check-circle text-secondary mr-1"></i>本地处理</span>
+                <span class="flex items-center"><i class="fa fa-check-circle text-secondary mr-1"></i>保护隐私</span>
+            </div>
+        </div>
+
+        <!-- 转换区域 -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-6xl mx-auto">
+            <!-- 输入区域 -->
+            <div class="bg-white rounded-xl shadow-md overflow-hidden transition-all duration-300 hover:shadow-lg">
+                <div class="bg-primary/10 px-6 py-4 border-b border-gray-100">
+                    <h3 class="font-semibold text-lg text-neutral flex items-center">
+                        <i class="fa fa-code text-primary mr-2"></i>Base64编码输入
+                    </h3>
+                </div>
+                <div class="p-6">
+                    <div class="mb-4">
+                        <textarea 
+                            id="base64Input" 
+                            class="w-full h-64 p-4 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none resize-none scrollbar-thin transition-all"
+                            placeholder="请输入Base64编码字符串...&#10;例如: data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA..."
+                        ></textarea>
+                    </div>
+                    
+                    <div class="flex flex-wrap gap-3 mb-4">
+                        <div class="flex items-center">
+                            <label for="imageFormat" class="text-gray-600 mr-2">输出格式:</label>
+                            <select id="imageFormat" class="border border-gray-200 rounded-md px-3 py-2 focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none">
+                                <option value="png">PNG</option>
+                                <option value="jpeg">JPG</option>
+                                <option value="webp">WebP</option>
+                                <option value="gif">GIF</option>
+                            </select>
+                        </div>
+                        
+                        <div class="flex-grow"></div>
+                        
+                        <button id="clearBtn" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md transition-colors flex items-center">
+                            <i class="fa fa-trash-o mr-1"></i> 清空
+                        </button>
+                        <button id="convertBtn" class="px-4 py-2 bg-primary hover:bg-primary/90 text-white rounded-md transition-colors flex items-center shadow-sm">
+                            <i class="fa fa-exchange mr-1"></i> 转换
+                        </button>
+                    </div>
+                    
+                    <div id="inputInfo" class="text-sm text-gray-500 mt-2 hidden">
+                        <p><i class="fa fa-info-circle mr-1"></i> 提示: Base64编码通常以 "data:image/..." 开头</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 输出预览区域 -->
+            <div class="bg-white rounded-xl shadow-md overflow-hidden transition-all duration-300 hover:shadow-lg">
+                <div class="bg-secondary/10 px-6 py-4 border-b border-gray-100">
+                    <h3 class="font-semibold text-lg text-neutral flex items-center">
+                        <i class="fa fa-eye text-secondary mr-2"></i>图片预览
+                    </h3>
+                </div>
+                <div class="p-6">
+                    <!-- 初始状态 -->
+                    <div id="initialState" class="flex flex-col items-center justify-center h-64 border-2 border-dashed border-gray-200 rounded-lg text-center p-6">
+                        <i class="fa fa-picture-o text-5xl text-gray-300 mb-4"></i>
+                        <p class="text-gray-500">转换后的图片将在这里显示</p>
+                        <p class="text-gray-400 text-sm mt-2">请在左侧输入Base64编码并点击转换</p>
+                    </div>
+                    
+                    <!-- 加载状态 -->
+                    <div id="loadingState" class="flex flex-col items-center justify-center h-64 border-2 border-dashed border-gray-200 rounded-lg hidden">
+                        <div class="w-12 h-12 border-4 border-gray-200 border-t-primary rounded-full animate-spin mb-4"></div>
+                        <p class="text-gray-500">正在转换图片...</p>
+                    </div>
+                    
+                    <!-- 错误状态 -->
+                    <div id="errorState" class="flex flex-col items-center justify-center h-64 border-2 border-dashed border-danger/30 bg-danger/5 rounded-lg hidden">
+                        <i class="fa fa-exclamation-triangle text-5xl text-danger mb-4"></i>
+                        <p class="text-danger font-medium">转换失败</p>
+                        <p id="errorMessage" class="text-gray-500 text-sm mt-2">请检查Base64编码是否正确</p>
+                    </div>
+                    
+                    <!-- 预览状态 -->
+                    <div id="previewState" class="h-64 border-2 border-gray-200 rounded-lg overflow-hidden hidden">
+                        <div class="flex justify-center items-center h-full bg-gray-50">
+                            <img id="previewImage" src="" alt="转换后的图片预览" class="max-w-full max-h-full object-contain transition-all duration-300">
+                        </div>
+                    </div>
+                    
+                    <!-- 图片信息和下载按钮 -->
+                    <div id="imageInfo" class="mt-4 hidden">
+                        <div class="flex flex-wrap justify-between items-center">
+                            <div class="text-sm text-gray-600">
+                                <p><span id="imageDimensions"></span> | <span id="imageSize"></span></p>
+                            </div>
+                            <button id="downloadBtn" class="mt-2 sm:mt-0 px-4 py-2 bg-secondary hover:bg-secondary/90 text-white rounded-md transition-colors flex items-center shadow-sm">
+                                <i class="fa fa-download mr-1"></i> 下载图片
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 功能说明 -->
+        <div class="mt-12 max-w-3xl mx-auto bg-white rounded-xl shadow-sm p-6">
+            <h3 class="text-xl font-semibold mb-4 text-neutral">如何使用Base64转图片工具</h3>
+            <div class="space-y-4 text-gray-600">
+                <div class="flex">
+                    <div class="flex-shrink-0 w-8 h-8 bg-primary/10 text-primary rounded-full flex items-center justify-center mr-3 mt-0.5">1</div>
+                    <div>
+                        <p class="font-medium">输入Base64编码</p>
+                        <p class="text-sm mt-1">在左侧文本框中粘贴你的Base64编码字符串，通常以 "data:image/..." 开头</p>
+                    </div>
+                </div>
+                <div class="flex">
+                    <div class="flex-shrink-0 w-8 h-8 bg-primary/10 text-primary rounded-full flex items-center justify-center mr-3 mt-0.5">2</div>
+                    <div>
+                        <p class="font-medium">选择输出格式</p>
+                        <p class="text-sm mt-1">从下拉菜单中选择你需要的图片格式，支持PNG、JPG、WebP和GIF</p>
+                    </div>
+                </div>
+                <div class="flex">
+                    <div class="flex-shrink-0 w-8 h-8 bg-primary/10 text-primary rounded-full flex items-center justify-center mr-3 mt-0.5">3</div>
+                    <div>
+                        <p class="font-medium">转换并预览</p>
+                        <p class="text-sm mt-1">点击"转换"按钮，图片会在右侧预览区域显示</p>
+                    </div>
+                </div>
+                <div class="flex">
+                    <div class="flex-shrink-0 w-8 h-8 bg-primary/10 text-primary rounded-full flex items-center justify-center mr-3 mt-0.5">4</div>
+                    <div>
+                        <p class="font-medium">下载图片</p>
+                        <p class="text-sm mt-1">确认预览效果后，点击"下载图片"按钮保存到本地</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- 页脚 -->
+    <footer class="bg-neutral text-gray-400 py-8 mt-12">
+        <div class="container mx-auto px-4">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div class="mb-4 md:mb-0">
+                    <p class="text-sm">© 2023 Base64转图片工具 - 所有转换均在本地完成，保护您的隐私</p>
+                </div>
+                <div class="flex space-x-6">
+                    <a href="#" class="text-gray-400 hover:text-white transition-colors text-sm">使用条款</a>
+                    <a href="#" class="text-gray-400 hover:text-white transition-colors text-sm">隐私政策</a>
+                    <a href="#" class="text-gray-400 hover:text-white transition-colors text-sm">联系我们</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- JavaScript -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 获取DOM元素
+            const base64Input = document.getElementById('base64Input');
+            const imageFormat = document.getElementById('imageFormat');
+            const convertBtn = document.getElementById('convertBtn');
+            const clearBtn = document.getElementById('clearBtn');
+            const downloadBtn = document.getElementById('downloadBtn');
+            const previewImage = document.getElementById('previewImage');
+            const initialState = document.getElementById('initialState');
+            const loadingState = document.getElementById('loadingState');
+            const errorState = document.getElementById('errorState');
+            const previewState = document.getElementById('previewState');
+            const imageInfo = document.getElementById('imageInfo');
+            const imageDimensions = document.getElementById('imageDimensions');
+            const imageSize = document.getElementById('imageSize');
+            const errorMessage = document.getElementById('errorMessage');
+            const inputInfo = document.getElementById('inputInfo');
+            
+            // 显示输入提示
+            base64Input.addEventListener('focus', function() {
+                inputInfo.classList.remove('hidden');
+            });
+            
+            // 转换按钮点击事件
+            convertBtn.addEventListener('click', function() {
+                const base64String = base64Input.value.trim();
+                
+                if (!base64String) {
+                    showError('请输入Base64编码字符串');
+                    return;
+                }
+                
+                // 显示加载状态
+                showLoading();
+                
+                // 模拟处理延迟，提升用户体验
+                setTimeout(() => {
+                    try {
+                        // 处理Base64字符串
+                        let dataUrl = base64String;
+                        
+                        // 如果字符串不包含data URI前缀，则添加它
+                        if (!dataUrl.startsWith('data:image/')) {
+                            dataUrl = `data:image/${imageFormat.value};base64,${dataUrl}`;
+                        }
+                        
+                        // 验证Base64
+                        if (!isValidBase64(dataUrl)) {
+                            throw new Error('无效的Base64编码');
+                        }
+                        
+                        // 显示预览
+                        previewImage.onload = function() {
+                            // 获取图片信息
+                            const width = previewImage.naturalWidth;
+                            const height = previewImage.naturalHeight;
+                            imageDimensions.textContent = `${width} × ${height} 像素`;
+                            
+                            // 计算图片大小
+                            const byteLength = Math.floor(base64String.length * 3 / 4);
+                            const sizeText = formatFileSize(byteLength);
+                            imageSize.textContent = sizeText;
+                            
+                            // 显示预览状态
+                            showPreview();
+                        };
+                        
+                        previewImage.onerror = function() {
+                            throw new Error('无法解析Base64为有效的图片');
+                        };
+                        
+                        previewImage.src = dataUrl;
+                        
+                    } catch (error) {
+                        showError(error.message);
+                    }
+                }, 600); // 延迟600ms，让用户看到加载动画
+            });
+            
+            // 清空按钮点击事件
+            clearBtn.addEventListener('click', function() {
+                base64Input.value = '';
+                showInitial();
+                
+                // 添加动画效果
+                base64Input.classList.add('border-gray-200');
+                setTimeout(() => {
+                    base64Input.classList.remove('border-gray-200');
+                }, 300);
+            });
+            
+            // 下载按钮点击事件
+            downloadBtn.addEventListener('click', function() {
+                const format = imageFormat.value;
+                const link = document.createElement('a');
+                link.download = `converted-image.${format}`;
+                link.href = previewImage.src;
+                
+                // 创建点击事件并触发
+                const clickEvent = new MouseEvent('click', {
+                    view: window,
+                    bubbles: true,
+                    cancelable: true
+                });
+                link.dispatchEvent(clickEvent);
+                
+                // 清理
+                URL.revokeObjectURL(link.href);
+            });
+            
+            // 辅助函数：显示初始状态
+            function showInitial() {
+                initialState.classList.remove('hidden');
+                loadingState.classList.add('hidden');
+                errorState.classList.add('hidden');
+                previewState.classList.add('hidden');
+                imageInfo.classList.add('hidden');
+            }
+            
+            // 辅助函数：显示加载状态
+            function showLoading() {
+                initialState.classList.add('hidden');
+                loadingState.classList.remove('hidden');
+                errorState.classList.add('hidden');
+                previewState.classList.add('hidden');
+                imageInfo.classList.add('hidden');
+            }
+            
+            // 辅助函数：显示错误状态
+            function showError(message) {
+                errorMessage.textContent = message;
+                initialState.classList.add('hidden');
+                loadingState.classList.add('hidden');
+                errorState.classList.remove('hidden');
+                previewState.classList.add('hidden');
+                imageInfo.classList.add('hidden');
+            }
+            
+            // 辅助函数：显示预览状态
+            function showPreview() {
+                initialState.classList.add('hidden');
+                loadingState.classList.add('hidden');
+                errorState.classList.add('hidden');
+                previewState.classList.remove('hidden');
+                imageInfo.classList.remove('hidden');
+            }
+            
+            // 辅助函数：验证Base64
+            function isValidBase64(str) {
+                try {
+                    // 移除data URI前缀（如果存在）
+                    const base64 = str.split(',')[1] || str;
+                    // 尝试解码
+                    return btoa(atob(base64)) === base64;
+                } catch (err) {
+                    return false;
+                }
+            }
+            
+            // 辅助函数：格式化文件大小
+            function formatFileSize(bytes) {
+                if (bytes < 1024) return bytes + ' B';
+                else if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+                else return (bytes / 1048576).toFixed(2) + ' MB';
+            }
+            
+            // 为文本框添加粘贴事件
+            base64Input.addEventListener('paste', function() {
+                // 短暂延迟后检查内容
+                setTimeout(() => {
+                    if (base64Input.value.trim()) {
+                        inputInfo.classList.add('hidden');
+                    }
+                }, 100);
+            });
+            
+            // 按Enter键触发转换
+            base64Input.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    convertBtn.click();
+                }
+            });
+        });
+    </script>
+</body>
+</html>

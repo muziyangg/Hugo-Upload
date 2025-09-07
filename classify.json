@@ -1,0 +1,7 @@
+{
+  "categories": [
+    {"id": "format", "name": "格式化工具"},
+    {"id": "image", "name": "图片工具"},
+    {"id": "network", "name": "网络工具"}
+  ]
+}
