@@ -330,7 +330,7 @@
                 const reader = new FileReader();
                 reader.readAsDataURL(file);
                 reader.onload = () => {
-                    // 移除data URL前缀 
+                    // 移除data URL前缀
                     resolve(reader.result.split(',')[1]);
                 };
                 reader.onerror = reject;
