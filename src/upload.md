@@ -3,7 +3,7 @@ title: 上传文件记录
 slug: 上传文件记录 37d3dcd9d2
 description:
 date: 2025-09-07
-lastmod: 2025-09-07 13:44:47
+lastmod: 2025-09-07 13:53:41
 image: img/title.jpg
 math:
 license:
@@ -17,6 +17,10 @@ tags: []
 
 | 文件名 | 上传时间 | 文件链接 | 上传人 |
 |--------|----------|----------|----------|
+| DHCM00001-AVE766尿机.docx | 2025-09-07 13:53:32 | [DHCM00001-AVE766尿机](assets/DHCM00001-AVE766尿机.docx) | |
+
+| DHCM00001-AVE取图(DemoM前处理).docx | 2025-09-07 13:53:32 | [DHCM00001-AVE取图(DemoM前处理)](assets/DHCM00001-AVE取图(DemoM前处理).docx) | |
+
 | DHCM00025-罗氏-Cobas8000-E602-网口-双向.docx | 2025-09-07 13:44:27 | [DHCM00025-罗氏-Cobas8000-E602-网口-双向](assets/DHCM00025-罗氏-Cobas8000-E602-网口-双向.docx) | |
 
 | DHCM00026—罗氏8000-602.docx | 2025-09-07 13:44:27 | [DHCM00026—罗氏8000-602](assets/DHCM00026—罗氏8000-602.docx) | |
