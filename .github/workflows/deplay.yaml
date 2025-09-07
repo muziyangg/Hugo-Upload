@@ -3,6 +3,8 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches: [ main ]
+    # 新增条件：当提交信息包含"Upload file:"时不触发工作流
+    if: "!contains(github.event.head_commit.message, 'Upload file:')"
   pull_request:
     branches: [ main ]
   workflow_dispatch:
