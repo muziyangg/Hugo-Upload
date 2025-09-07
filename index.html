@@ -1,42 +1,372 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
-<!-- 头部样式与原代码一致，省略重复部分 -->
-<body>
-    <!-- 页面结构与原代码一致，仅修改 <script> 部分 -->
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文件上传器</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <style>
+        .drop-area {
+            border: 2px dashed #ccc;
+            transition: all 0.3s ease;
+        }
+        .drop-area.active {
+            border-color: #4CAF50;
+            background-color: rgba(76, 175, 80, 0.1);
+        }
+        .file-item {
+            animation: fadeIn 0.3s ease;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .error-message {
+            animation: shake 0.5s ease;
+        }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+        .progress-container {
+            height: 4px;
+            background-color: #eee;
+            border-radius: 2px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+        .progress-bar {
+            height: 100%;
+            background-color: #4CAF50;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div class="container mx-auto px-4 py-8 max-w-3xl">
+        <header class="text-center mb-8">
+            <h1 class="text-3xl font-bold text-gray-800">文件上传器</h1>
+            <p class="text-gray-600 mt-2">直接上传文件到GitHub仓库</p>
+        </header>
+
+        <!-- 仓库和认证设置 -->
+        <div class="bg-white p-4 rounded-lg shadow mb-6">
+            <h2 class="text-lg font-semibold mb-3">GitHub 配置</h2>
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-1">GitHub 用户名</label>
+                <input type="text" id="githubUsername" 
+                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                       placeholder="输入GitHub用户名" value="your-username" />
+            </div>
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-1">GitHub 仓库名</label>
+                <input type="text" id="githubRepo" 
+                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                       placeholder="输入GitHub仓库名" value="your-repo" />
+            </div>
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-1">分支名</label>
+                <input type="text" id="githubBranch" 
+                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                       placeholder="输入分支名" value="main" />
+            </div>
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-1">文件存储路径</label>
+                <input type="text" id="filePath" 
+                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                       placeholder="例如：src/upload/assets/" value="src/upload/assets/" />
+            </div>
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-1">GitHub 个人访问令牌</label>
+                <input type="password" id="githubToken" 
+                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                       placeholder="输入GitHub个人访问令牌" />
+                <button id="saveToken" class="mt-2 text-sm text-blue-500 hover:text-blue-700">保存令牌</button>
+            </div>
+        </div>
+
+        <!-- 拖放区域 -->
+        <div id="dropArea" class="dropArea bg-white p-8 rounded-lg shadow text-center mb-6">
+            <i class="fa fa-cloud-upload text-5xl text-gray-400 mb-4"></i>
+            <p class="text-gray-600 mb-4">拖放文件到这里，或者</p>
+            <label class="bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600 transition cursor-pointer">
+                <i class="fa fa-file-o mr-2"></i>选择文件
+                <input type="file" id="fileInput" multiple class="hidden" />
+            </label>
+            <p id="emptyMessage" class="mt-4 text-gray-500">暂无文件</p>
+        </div>
+
+        <!-- 文件列表 -->
+        <div id="fileList" class="bg-white rounded-lg shadow overflow-hidden mb-6 hidden">
+            <div class="px-4 py-3 bg-gray-50 border-b border-gray-200 font-medium">
+                待上传文件 (<span id="fileCount">0</span>)
+            </div>
+            <div id="filesContainer" class="divide-y divide-gray-200"></div>
+        </div>
+
+        <!-- 上传按钮 -->
+        <div class="text-center">
+            <button id="uploadBtn" class="bg-green-500 text-white px-8 py-3 rounded-lg hover:bg-green-600 transition disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                <i class="fa fa-upload mr-2"></i>上传所有文件
+            </button>
+        </div>
+
+        <div id="statusMessage" class="mt-6 p-4 rounded-lg hidden"></div>
+    </div>
+
     <script>
-        // DOM元素、加载配置、拖放处理等原有函数不变，仅修改「上传逻辑」和「工作流触发」
+        // DOM元素获取
+        const dropArea = document.getElementById('dropArea');
+        const fileInput = document.getElementById('fileInput');
+        const filesContainer = document.getElementById('filesContainer');
+        const fileList = document.getElementById('fileList');
+        const fileCount = document.getElementById('fileCount');
+        const emptyMessage = document.getElementById('emptyMessage');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const statusMessage = document.getElementById('statusMessage');
+        const githubToken = document.getElementById('githubToken');
+        const saveToken = document.getElementById('saveToken');
+        const githubUsername = document.getElementById('githubUsername');
+        const githubRepo = document.getElementById('githubRepo');
+        const githubBranch = document.getElementById('githubBranch');
+        const filePath = document.getElementById('filePath');
         
-        // 1. 上传按钮点击事件：批量上传所有文件，收集成功文件后单次触发工作流
+        let files = [];
+        
+        // 加载保存的配置
+        function loadSettings() {
+            const savedToken = localStorage.getItem('githubToken');
+            if (savedToken) {
+                githubToken.value = savedToken;
+            }
+            
+            const savedUsername = localStorage.getItem('githubUsername');
+            if (savedUsername) {
+                githubUsername.value = savedUsername;
+            }
+            
+            const savedRepo = localStorage.getItem('githubRepo');
+            if (savedRepo) {
+                githubRepo.value = savedRepo;
+            }
+            
+            const savedBranch = localStorage.getItem('githubBranch');
+            if (savedBranch) {
+                githubBranch.value = savedBranch;
+            }
+            
+            const savedFilePath = localStorage.getItem('filePath');
+            if (savedFilePath) {
+                filePath.value = savedFilePath;
+            }
+        }
+        
+        function saveSettings() {
+            localStorage.setItem('githubUsername', githubUsername.value);
+            localStorage.setItem('githubRepo', githubRepo.value);
+            localStorage.setItem('githubBranch', githubBranch.value);
+            localStorage.setItem('filePath', filePath.value);
+        }
+        
+        // 保存令牌
+        saveToken.addEventListener('click', () => {
+            localStorage.setItem('githubToken', githubToken.value);
+            showMessage('令牌已保存', 'success');
+        });
+        
+        loadSettings();
+
+        // 拖放事件处理
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, preventDefaults, false);
+        });
+        
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropArea.addEventListener(eventName, highlight, false);
+        });
+        
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, unhighlight, false);
+        });
+        
+        function highlight() {
+            dropArea.classList.add('active');
+        }
+        
+        function unhighlight() {
+            dropArea.classList.remove('active');
+        }
+        
+        dropArea.addEventListener('drop', handleDrop, false);
+        
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const newFiles = Array.from(dt.files);
+            addFiles(newFiles);
+        }
+        
+        // 点击选择文件
+        dropArea.addEventListener('click', () => {
+            if (!dropArea.classList.contains('active')) {
+                fileInput.click();
+            }
+        });
+        
+        fileInput.addEventListener('change', function() {
+            const newFiles = Array.from(this.files);
+            addFiles(newFiles);
+            this.value = ''; // 重置，允许重复选择同一文件
+        });
+
+        // 添加文件到列表
+        function addFiles(newFiles) {
+            if (newFiles.length === 0) return;
+            
+            // 过滤掉已存在的文件
+            const uniqueFiles = newFiles.filter(newFile => 
+                !files.some(existingFile => 
+                    existingFile.name === newFile.name && 
+                    existingFile.size === newFile.size &&
+                    existingFile.lastModified === newFile.lastModified
+                )
+            );
+            
+            if (uniqueFiles.length === 0) {
+                showMessage('所选文件已在列表中', 'info');
+                return;
+            }
+            
+            files = [...files, ...uniqueFiles];
+            renderFileList();
+            uploadBtn.disabled = false;
+        }
+        
+        // 渲染文件列表
+        function renderFileList() {
+            if (files.length === 0) {
+                fileList.classList.add('hidden');
+                emptyMessage.classList.remove('hidden');
+                return;
+            }
+            
+            fileList.classList.remove('hidden');
+            emptyMessage.classList.add('hidden');
+            fileCount.textContent = files.length;
+            
+            filesContainer.innerHTML = '';
+            
+            files.forEach((file, index) => {
+                const fileItem = document.createElement('div');
+                fileItem.className = 'file-item px-4 py-3 flex items-center justify-between';
+                fileItem.innerHTML = `
+                    <div class="flex items-center">
+                        <i class="fa fa-file-o text-gray-500 mr-3"></i>
+                        <div>
+                            <div class="font-medium text-gray-800 truncate max-w-xs" title="${file.name}">${file.name}</div>
+                            <div class="text-sm text-gray-500">${formatFileSize(file.size)}</div>
+                            <div class="progress-container">
+                                <div class="progress-bar" data-index="${index}"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <button class="text-red-500 hover:text-red-700 delete-btn" data-index="${index}">
+                        <i class="fa fa-trash-o"></i>
+                    </button>
+                `;
+                filesContainer.appendChild(fileItem);
+            });
+            
+            // 添加删除事件
+            document.querySelectorAll('.delete-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const index = parseInt(e.currentTarget.dataset.index);
+                    files.splice(index, 1);
+                    renderFileList();
+                    if (files.length === 0) {
+                        uploadBtn.disabled = true;
+                    }
+                });
+            });
+        }
+        
+        // 格式化文件大小
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+        
+        // 显示消息
+        function showMessage(text, type = 'info') {
+            statusMessage.textContent = text;
+            statusMessage.classList.remove('hidden', 'bg-green-100', 'text-green-800', 'bg-red-100', 'text-red-800', 'bg-blue-100', 'text-blue-800');
+            
+            switch(type) {
+                case 'success':
+                    statusMessage.classList.add('bg-green-100', 'text-green-800');
+                    break;
+                case 'error':
+                    statusMessage.classList.add('bg-red-100', 'text-red-800', 'error-message');
+                    break;
+                default:
+                    statusMessage.classList.add('bg-blue-100', 'text-blue-800');
+            }
+            
+            // 3秒后自动隐藏消息
+            setTimeout(() => {
+                statusMessage.classList.add('hidden');
+            }, 3000);
+        }
+
+        // 上传按钮点击事件
         uploadBtn.addEventListener('click', async () => {
             saveSettings();
+            
             const token = githubToken.value;
             const username = githubUsername.value;
             const repo = githubRepo.value;
             const branch = githubBranch.value;
             let path = filePath.value;
             
-            // 配置验证（同原逻辑）
-            if (!token || !username || !repo || files.length === 0) {
-                showMessage('请完善GitHub配置并选择文件', 'error');
+            // 配置验证
+            if (!token) {
+                showMessage('请输入GitHub个人访问令牌', 'error');
                 return;
             }
-            if (path && !path.endsWith('/')) path += '/'; // 确保路径以斜杠结尾
+            if (!username || !repo) {
+                showMessage('请输入GitHub用户名和仓库名', 'error');
+                return;
+            }
+            if (path && !path.endsWith('/')) path += '/';
+            if (files.length === 0) {
+                showMessage('没有文件可上传', 'error');
+                return;
+            }
             
             uploadBtn.disabled = true;
             uploadBtn.innerHTML = '<i class="fa fa-spinner fa-spin mr-2"></i>上传中...';
             
             try {
-                // 关键：收集所有成功上传的文件信息
+                // 收集成功上传的文件
                 const successFiles = [];
                 for (let i = 0; i < files.length; i++) {
                     const file = files[i];
                     try {
-                        // 仅上传文件，不单独触发工作流
+                        // 上传单个文件
                         await uploadFileToGitHub(file, token, username, repo, branch, path, i);
-                        // 记录成功的文件（name + 完整路径）
                         successFiles.push({
                             name: file.name,
-                            path: path + file.name // 仓库中的完整路径，如 "src/upload/assets/xxx.docx"
+                            path: path + file.name
                         });
                     } catch (error) {
                         showMessage(`文件 "${file.name}" 上传失败: ${error.message}`, 'error');
@@ -44,33 +374,27 @@
                     }
                 }
                 
-                // 2. 关键：所有文件上传完成后，只触发一次工作流（批量传递成功文件）
+                // 所有文件上传完成后，触发一次批量工作流
                 if (successFiles.length > 0) {
                     await triggerBatchWorkflow(successFiles, token, username, repo);
-                    showMessage(`成功上传 ${successFiles.length}/${files.length} 个文件，记录已批量更新`, 'success');
+                    showMessage(`成功上传 ${successFiles.length}/${files.length} 个文件，记录已更新`, 'success');
                 }
                 
                 // 清空文件列表
                 files = [];
                 renderFileList();
             } catch (error) {
-                console.error('整体上传流程出错:', error);
-                showMessage(`上传流程失败: ${error.message}`, 'error');
+                console.error('上传过程出错:', error);
+                showMessage(`上传失败: ${error.message}`, 'error');
             } finally {
                 uploadBtn.disabled = false;
                 uploadBtn.innerHTML = '<i class="fa fa-upload mr-2"></i>上传所有文件';
             }
         });
 
-        /**
-         * 新增：批量触发工作流（传递所有成功文件，仅触发一次）
-         * @param {Array} successFiles - 成功上传的文件列表（含name和path）
-         * @param {string} token - GitHub PAT
-         * @param {string} username - GitHub用户名
-         * @param {string} repo - 仓库名
-         */
+        // 批量触发工作流函数
         async function triggerBatchWorkflow(successFiles, token, username, repo) {
-            const batchTimestamp = new Date().toISOString(); // 批量操作的统一时间戳
+            const batchTimestamp = new Date().toISOString();
             try {
                 const response = await fetch(
                     `https://api.github.com/repos/${username}/${repo}/dispatches`,
@@ -81,12 +405,11 @@
                             'Accept': 'application/vnd.github.v3+json',
                             'Content-Type': 'application/json'
                         },
-                        // 关键：传递文件数组，而非单个文件
                         body: JSON.stringify({
-                            event_type: 'file_uploaded', // 保持原有事件类型，无需改工作流
+                            event_type: 'file_uploaded',
                             client_payload: {
-                                batch_files: successFiles, // 批量文件列表
-                                batch_timestamp: batchTimestamp // 批量时间戳
+                                batch_files: successFiles,  // 传递批量文件列表
+                                batch_timestamp: batchTimestamp  // 统一时间戳
                             }
                         })
                     }
@@ -99,14 +422,11 @@
                 console.log(`批量工作流触发成功，共处理 ${successFiles.length} 个文件`);
             } catch (error) {
                 console.error('批量工作流触发出错:', error);
-                showMessage(`文件上传成功，但批量更新记录失败: ${error.message}`, 'info');
-                throw error; // 若需严格保证记录更新，可抛出错误中断流程
+                throw error;
             }
         }
 
-        /**
-         * 修改：仅上传文件，移除单个文件触发工作流的逻辑
-         */
+        // 上传文件到GitHub
         async function uploadFileToGitHub(file, token, username, repo, branch, path, fileIndex) {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
@@ -114,51 +434,89 @@
                 
                 reader.onload = async (event) => {
                     try {
-                        updateProgress(fileIndex, 20); // 进度：读取完成
+                        updateProgress(fileIndex, 20);
                         const base64Content = event.target.result.split(',')[1];
                         const sha = await getFileSha(token, username, repo, branch, path, file.name);
                         
-                        updateProgress(fileIndex, 40); // 进度：准备上传
+                        updateProgress(fileIndex, 40);
                         const payload = {
                             message: `Upload file: ${file.name}`,
                             content: base64Content,
                             branch: branch
                         };
-                        if (sha) payload.sha = sha; // 若文件已存在，传SHA更新
+                        if (sha) payload.sha = sha;
                         
-                        // 发送上传请求
                         const response = await fetch(
                             `https://api.github.com/repos/${username}/${repo}/contents/${fullFilePath}`,
                             {
                                 method: 'PUT',
                                 headers: {
                                     'Authorization': `token ${token}`,
-                                    'Content-Type': 'application/json',
-                                    'Accept': 'application/vnd.github.v3+json'
+                                    'Content-Type': 'application/json'
                                 },
                                 body: JSON.stringify(payload)
                             }
                         );
                         
-                        updateProgress(fileIndex, 70); // 进度：上传中
+                        updateProgress(fileIndex, 70);
                         if (!response.ok) {
-                            const errorRes = await response.json();
-                            throw new Error(`文件上传失败: ${response.status} - ${errorRes.message}`);
+                            const error = await response.json();
+                            throw new Error(error.message || `HTTP错误: ${response.status}`);
                         }
                         
-                        updateProgress(fileIndex, 100); // 进度：上传完成
-                        resolve(); // 仅返回成功，不触发工作流
+                        updateProgress(fileIndex, 100);
+                        resolve();
                     } catch (error) {
                         reject(error);
                     }
                 };
                 
-                reader.onerror = (error) => reject(new Error(`文件读取错误: ${error.message}`));
+                reader.onerror = (error) => {
+                    reject(new Error(`文件读取错误: ${error.message}`));
+                };
+                
                 reader.readAsDataURL(file);
             });
         }
 
-        // 其他函数（getFileSha、updateProgress、formatFileSize等）保持不变
+        // 获取文件的SHA（用于更新已存在的文件）
+        async function getFileSha(token, username, repo, branch, path, filename) {
+            try {
+                const fullPath = path + filename;
+                const response = await fetch(
+                    `https://api.github.com/repos/${username}/${repo}/contents/${fullPath}?ref=${branch}`,
+                    {
+                        headers: {
+                            'Authorization': `token ${token}`,
+                            'Accept': 'application/vnd.github.v3+json'
+                        }
+                    }
+                );
+                
+                if (response.status === 404) {
+                    return null; // 文件不存在
+                }
+                
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.message || `HTTP错误: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                return data.sha;
+            } catch (error) {
+                console.error('获取文件SHA失败:', error);
+                throw error;
+            }
+        }
+        
+        // 更新进度条
+        function updateProgress(fileIndex, percentage) {
+            const progressBar = document.querySelector(`.progress-bar[data-index="${fileIndex}"]`);
+            if (progressBar) {
+                progressBar.style.width = `${percentage}%`;
+            }
+        }
     </script>
 </body>
 </html>
