@@ -23,6 +23,7 @@ jobs:
       - name: Checkout 代码
         uses: actions/checkout@v4
         with:
+<<<<<<< HEAD
           fetch-depth: 0 # 拉取完整历史，避免Git提交冲突
 
       - name: 拉取最新代码（防止本地代码落后）
@@ -35,6 +36,25 @@ jobs:
           python-version: '3.10' # 与本地开发环境一致
 
       - name: 批量处理文件记录（调用Python脚本）
+=======
+          fetch-depth: 0  # 获取完整历史，确保能拉取最新更改
+          
+      - name: 等待前序任务完成（额外保障）
+        run: |
+          echo "等待可能正在运行的工作流完成..."
+          sleep 5  # 短暂延迟，给前序任务提交机会
+          
+      - name: 拉取最新代码（防止冲突）
+        run: |
+          git pull origin main
+          
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+          
+      - name: Process uploaded files
+>>>>>>> f25bd37a499f6e56483283df922e917266bdfd07
         if: github.event_name == 'repository_dispatch' && github.event.action == 'file_uploaded'
         run: |
           # 关键：将GitHub事件中的batch_files（JSON）转成字符串，传递给Python
@@ -71,5 +91,12 @@ jobs:
         uses: actions/upload-pages-artifact@v3
         with:
           path: '.'
+<<<<<<< HEAD
       - name: 部署Pages
         uses: actions/deploy-pages@v4
+=======
+          
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+>>>>>>> f25bd37a499f6e56483283df922e917266bdfd07
