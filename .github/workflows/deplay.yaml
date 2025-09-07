@@ -27,14 +27,19 @@ jobs:
         with:
           fetch-depth: 0  # 获取完整历史，确保能拉取最新更改
           
+      - name: 等待前序任务完成（额外保障）
+        run: |
+          echo "等待可能正在运行的工作流完成..."
+          sleep 5  # 短暂延迟，给前序任务提交机会
+          
+      - name: 拉取最新代码（防止冲突）
+        run: |
+          git pull origin main
+          
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
-          
-      - name: 拉取最新代码（避免冲突）
-        run: |
-          git pull origin main
           
       - name: Process uploaded files
         if: github.event_name == 'repository_dispatch' && github.event.action == 'file_uploaded'
@@ -64,4 +69,3 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
-    
