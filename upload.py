@@ -24,6 +24,11 @@ def save_record(filename, file_path, timestamp):
     """保存新的上传记录"""
     records = load_records()
     
+    # 处理带有Z后缀的ISO时间格式
+    if timestamp.endswith('Z'):
+        # 替换Z为+00:00，转换为Python可解析的格式
+        timestamp = timestamp.replace('Z', '+00:00')
+    
     # 创建新记录
     new_record = {
         "filename": filename,
@@ -110,4 +115,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-    
