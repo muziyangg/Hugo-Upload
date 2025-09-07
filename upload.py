@@ -7,7 +7,7 @@ from pathlib import Path
 
 # 配置目标文件和目录
 MD_FILE_PATH = os.path.join("src", "upload.md")  # Markdown文件路径
-UPLOAD_RECORDS = os.path.join("src", "upload_records.json")  # 上传记录JSON文件
+UPLOAD_RECORDS = "upload_records.json"  # 上传记录JSON文件
 
 
 def ensure_directory_exists(file_path):

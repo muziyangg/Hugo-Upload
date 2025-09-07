@@ -13,8 +13,8 @@ on:
 
 # 调整并发控制策略
 concurrency:
-  group: ${{ github.ref }}-pages-deployment  # group: ${{ github.ref }}-file-upload-${{ github.run_id }}  # 添加唯一的run_id
-  cancel-in-progress: true  # 不取消正在运行的工作流
+  group: ${{ github.ref }}-pages-deployment
+  cancel-in-progress: true
 
 jobs:
   build:
@@ -23,13 +23,16 @@ jobs:
       contents: write
       pages: write
       id-token: write
+      # 添加对其他仓库的操作权限
+      repository-projects: write
+
     steps:
       - name: Print event info
         run: |
           echo "Event name: ${{ github.event_name }}"
           echo "Event action: ${{ github.event.action }}"
     
-      - name: Checkout
+      - name: Checkout current repo
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
@@ -37,7 +40,7 @@ jobs:
       - name: 等待前序任务完成
         run: |
           echo "等待可能正在运行的工作流完成..."
-          sleep 10  # 延长等待时间
+          sleep 10
           
       - name: 拉取最新代码
         run: |
@@ -56,8 +59,6 @@ jobs:
           FILE_COUNT=$(echo '${{ toJSON(github.event.client_payload.batch_files) }}' | jq '. | length')
           echo "文件数量: $FILE_COUNT"
           python upload.py "$BATCH_FILES" "${{ github.event.client_payload.batch_timestamp }}"
-          echo "Markdown文件内容:"
-          cat src/upload.md
           
       - name: Commit changes
         if: github.event_name == 'repository_dispatch' && github.event.action == 'file_uploaded'
@@ -68,6 +69,33 @@ jobs:
           git add src/upload.md src/upload_records.json
           FILE_COUNT=$(echo '${{ toJSON(github.event.client_payload.batch_files) }}' | jq '. | length')
           git commit -m "Update upload records for batch of $FILE_COUNT files" || echo "No changes to commit"
+          git push
+          
+      - name: Checkout Hugo-Work repo
+        if: github.event_name == 'repository_dispatch' && github.event.action == 'file_uploaded'
+        uses: actions/checkout@v4
+        with:
+          repository: muziyangg/Hugo-Work  # 替换为实际的Hugo-Work仓库路径
+          path: Hugo-Work
+          token: ${{ secrets.HUGO_WORK_PAT }}  # 需要在当前仓库设置访问Hugo-Work的PAT密钥
+          
+      - name: Copy files to Hugo-Work
+        if: github.event_name == 'repository_dispatch' && github.event.action == 'file_uploaded'
+        run: |
+          # 创建目标目录（如果不存在）
+          mkdir -p Hugo-Work/content/post/other
+          # 复制src目录下的所有文件到目标路径
+          cp -R src/* Hugo-Work/content/post/other/
+          
+      - name: Commit to Hugo-Work
+        if: github.event_name == 'repository_dispatch' && github.event.action == 'file_uploaded'
+        run: |
+          cd Hugo-Work
+          git config --global user.name 'GitHub Actions'
+          git config --global user.email 'actions@github.com'
+          git pull origin main
+          git add content/post/other/*
+          git commit -m "Sync files from main repo (batch of ${{ github.event.client_payload.batch_files | length }})" || echo "No changes to commit"
           git push
           
       - name: Setup Pages
@@ -81,4 +109,3 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
-    
