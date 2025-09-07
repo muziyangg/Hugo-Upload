@@ -47,6 +47,9 @@ jobs:
           # 将JSON数据转换为适当的格式传递给Python脚本
           BATCH_FILES=$(echo '${{ toJSON(github.event.client_payload.batch_files) }}' | jq -c .)
           echo "处理文件列表: $BATCH_FILES"
+          # 使用jq获取文件数量
+          FILE_COUNT=$(echo '${{ toJSON(github.event.client_payload.batch_files) }}' | jq '. | length')
+          echo "文件数量: $FILE_COUNT"
           python upload.py "$BATCH_FILES" "${{ github.event.client_payload.batch_timestamp }}"
           echo "Markdown文件内容:"
           cat src/upload.md
@@ -58,7 +61,9 @@ jobs:
           git config --global user.email 'actions@github.com'
           git pull origin main  # 再次拉取最新代码，防止冲突
           git add src/upload.md src/upload_records.json
-          git commit -m "Update upload records for batch of ${{ length(github.event.client_payload.batch_files) }} files" || echo "No changes to commit"
+          # 使用jq获取文件数量并在提交信息中使用
+          FILE_COUNT=$(echo '${{ toJSON(github.event.client_payload.batch_files) }}' | jq '. | length')
+          git commit -m "Update upload records for batch of $FILE_COUNT files" || echo "No changes to commit"
           git push
           
       - name: Setup Pages
