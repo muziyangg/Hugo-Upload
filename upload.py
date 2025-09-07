@@ -143,7 +143,7 @@ def update_markdown_file(new_records):
     # 构建新记录行
     new_rows = []
     for record in new_records:
-        new_row = f"| {record['filename']} | {record['formatted_date']} | {format_file_link(record['path'])} | |\n"
+        new_row = f"| {record['filename']} | {record['formatted_date']} | {format_file_link(record['path'])} | |"
         new_rows.append(new_row)
         print(f"添加新记录行: {new_row.strip()}")
 

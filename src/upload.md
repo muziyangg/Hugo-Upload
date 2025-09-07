@@ -17,24 +17,3 @@ tags: []
 
 | 文件名 | 上传时间 | 文件链接 | 上传人 |
 |--------|----------|----------|----------|
-| DHCM00019—LH750—贝克曼（有接口程序）.docx | 2025-09-07 14:11:06 | [DHCM00019—LH750—贝克曼（有接口程序）](assets/DHCM00019—LH750—贝克曼（有接口程序）.docx) | |
-
-| DHCM00019—LH750—贝克曼.docx | 2025-09-07 14:11:06 | [DHCM00019—LH750—贝克曼](assets/DHCM00019—LH750—贝克曼.docx) | |
-
-| DHCM00001-AVE766尿机.docx | 2025-09-07 13:53:32 | [DHCM00001-AVE766尿机](assets/DHCM00001-AVE766尿机.docx) | |
-
-| DHCM00001-AVE取图(DemoM前处理).docx | 2025-09-07 13:53:32 | [DHCM00001-AVE取图(DemoM前处理)](assets/DHCM00001-AVE取图(DemoM前处理).docx) | |
-
-| DHCM00025-罗氏-Cobas8000-E602-网口-双向.docx | 2025-09-07 13:44:27 | [DHCM00025-罗氏-Cobas8000-E602-网口-双向](assets/DHCM00025-罗氏-Cobas8000-E602-网口-双向.docx) | |
-
-| DHCM00026—罗氏8000-602.docx | 2025-09-07 13:44:27 | [DHCM00026—罗氏8000-602](assets/DHCM00026—罗氏8000-602.docx) | |
-
-| DHCM00001-AVE取图(DemoM前处理).docx | 2025-09-07 12:51:02 | [DHCM00001-AVE取图(DemoM前处理)](assets/DHCM00001-AVE取图(DemoM前处理).docx) ||
-
-
-| 文件名 | 上传时间 | 文件路径 |
-|--------|----------|----------|
-| DHCM00003-西门子-IMMULITE2000.doc | 2025-09-07 13:07:18 | src/upload/assets/DHCM00003-西门子-IMMULITE2000.doc |
-
-| DHCM00002-西森美康-XN系列.docx | 2025-09-07 13:01:37 | src/upload/assets/DHCM00002-西森美康-XN系列.docx |
-
