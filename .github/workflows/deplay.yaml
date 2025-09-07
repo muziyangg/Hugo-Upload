@@ -95,7 +95,9 @@ jobs:
           git config --global user.email 'actions@github.com'
           git pull origin main
           git add content/post/other/*
-          git commit -m "Sync files from main repo (batch of ${{ github.event.client_payload.batch_files | length }})" || echo "No changes to commit"
+          # 使用jq计算文件数量，修复语法错误
+          FILE_COUNT=$(echo '${{ toJSON(github.event.client_payload.batch_files) }}' | jq '. | length')
+          git commit -m "Sync files from main repo (batch of $FILE_COUNT files)" || echo "No changes to commit"
           git push
           
       - name: Setup Pages
