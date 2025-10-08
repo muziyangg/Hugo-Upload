@@ -25,7 +25,7 @@ jobs:
         with:
           # 指定实际的构建输出目录，通常是 'public', 'dist' 或 '_site' 等
           # 根据你的项目修改这个路径
-          path: 'public'
+          path: '.'
           
       - name: Deploy to GitHub Pages
         id: deployment
