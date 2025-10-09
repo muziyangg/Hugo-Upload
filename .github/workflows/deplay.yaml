@@ -3,11 +3,15 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches: [ main ]
-    # 过滤含"Upload file:"的提交，不触发工作流
+    # 事件级过滤：不含"Upload file:"的提交才触发
     if: "!contains(github.event.head_commit.message, 'Upload file:')"
-  workflow_dispatch:  # 保留手动触发
+  workflow_dispatch:
+  # 新增一个专门用于记录过滤结果的事件触发
+  repository_dispatch:
+    types: [log-filter-result]
 
 jobs:
+  # 核心部署作业（仅在事件级过滤通过后执行）
   build:
     runs-on: ubuntu-latest
     permissions:
@@ -15,6 +19,13 @@ jobs:
       pages: write
       id-token: write
     steps:
+      - name: 打印部署触发原因
+        run: |
+          echo "工作流因以下原因触发："
+          echo "事件类型: ${{ github.event_name }}"
+          echo "提交信息: ${{ github.event.head_commit.message || '无（手动触发）' }}"
+          echo "事件级过滤结果: 已通过（此作业执行即证明）"
+          
       - name: Checkout
         uses: actions/checkout@v4
         
@@ -24,9 +35,22 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          # 根目录直接部署（包含index.html和其他静态资源）
           path: '.'
           
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+  # 影子作业：专门记录被事件级过滤拦截的提交
+  log-filtered-events:
+    runs-on: ubuntu-latest
+    # 仅当提交信息含"Upload file:"且是push事件时执行
+    if: "github.event_name == 'push' && contains(github.event.head_commit.message, 'Upload file:')"
+    steps:
+      - name: 记录被过滤的事件
+        run: |
+          echo "检测到被事件级过滤拦截的提交："
+          echo "提交信息: ${{ github.event.head_commit.message }}"
+          echo "提交作者: ${{ github.event.head_commit.author.name }}"
+          echo "提交时间: ${{ github.event.head_commit.timestamp }}"
+          echo "事件级过滤结果: 已拦截（此作业执行即证明）"
