@@ -3,8 +3,8 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches: [ main ]
-    # 增强的事件级过滤，使用正则匹配提高兼容性
-    if: "!matches(github.event.head_commit.message, '^Upload\\s+file:.*$', 'i')"
+    # 修复：使用contains替代不支持的matches函数，添加大小写兼容处理
+    if: "!contains(github.event.head_commit.message, 'Upload file:') && !contains(github.event.head_commit.message, 'upload file:')"
   workflow_dispatch:
 
 jobs:
@@ -45,7 +45,8 @@ jobs:
         run: |
           echo "事件类型: ${{ github.event_name }}"
           echo "提交信息: ${{ github.event.head_commit.message || '无（手动触发）' }}"
-          echo "过滤条件结果: ${{ !matches(github.event.head_commit.message, '^Upload\\s+file:.*$', 'i') }}"
+          echo "是否包含'Upload file:': ${{ contains(github.event.head_commit.message, 'Upload file:') }}"
+          echo "是否包含'upload file:': ${{ contains(github.event.head_commit.message, 'upload file:') }}"
           
       - name: Checkout
         uses: actions/checkout@v4
@@ -77,12 +78,11 @@ jobs:
   # 过滤失效报警作业
   filter-failure-alert:
     runs-on: ubuntu-latest
-    if: "github.event_name == 'push' && matches(github.event.head_commit.message, '^Upload\\s+file:.*$', 'i')"
+    if: "github.event_name == 'push' && (contains(github.event.head_commit.message, 'Upload file:') || contains(github.event.head_commit.message, 'upload file:'))"
     steps:
       - name: 过滤机制失效紧急报警
         run: |
           echo "❌ 严重错误：事件级过滤机制完全失效！"
           echo "提交信息: ${{ github.event.head_commit.message }}"
           echo "请立即检查工作流文件是否已正确提交到main分支"
-          echo "检查提交信息中的关键字是否存在特殊字符或格式问题"
           exit 1  # 强制失败以引起注意
