@@ -3,24 +3,49 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches: [ main ]
-    # 事件级过滤：严格拦截含"Upload file:"的提交
-    if: "!contains(github.event.head_commit.message, 'Upload file:')"
+    # 增强的事件级过滤，使用正则匹配提高兼容性
+    if: "!matches(github.event.head_commit.message, '^Upload\\s+file:.*$', 'i')"
   workflow_dispatch:
 
 jobs:
+  # 检查是否有正在进行的部署
+  check-deployment-status:
+    runs-on: ubuntu-latest
+    outputs:
+      can_deploy: ${{ steps.check.outputs.can_deploy }}
+    steps:
+      - name: Check GitHub Pages deployment status
+        id: check
+        run: |
+          # 使用GitHub API检查当前部署状态
+          RESPONSE=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            "https://api.github.com/repos/${{ github.repository }}/pages/deployments")
+          
+          # 提取最近的部署状态
+          LATEST_STATUS=$(echo "$RESPONSE" | jq -r '.[0].status')
+          echo "最新部署状态: $LATEST_STATUS"
+          
+          # 如果没有正在进行的部署，允许继续
+          if [[ "$LATEST_STATUS" != "in_progress" ]]; then
+            echo "can_deploy=true" >> $GITHUB_OUTPUT
+          else
+            echo "can_deploy=false" >> $GITHUB_OUTPUT
+          fi
+
   build:
+    needs: check-deployment-status
+    if: needs.check-deployment-status.outputs.can_deploy == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
       pages: write
       id-token: write
     steps:
-      - name: 打印部署触发原因
+      - name: 打印部署信息
         run: |
-          echo "工作流因以下原因触发："
           echo "事件类型: ${{ github.event_name }}"
           echo "提交信息: ${{ github.event.head_commit.message || '无（手动触发）' }}"
-          echo "事件级过滤结果: 已通过（仅当提交不含'Upload file:'或手动触发时执行）"
+          echo "过滤条件结果: ${{ !matches(github.event.head_commit.message, '^Upload\\s+file:.*$', 'i') }}"
           
       - name: Checkout
         uses: actions/checkout@v4
@@ -37,15 +62,27 @@ jobs:
         id: deployment
         uses: actions/deploy-pages@v4
 
-  # 仅当事件级过滤未生效时，此作业才会执行（用于报警）
-  filter-conflict-alert:
+  # 处理部署冲突的作业
+  handle-deployment-conflict:
+    needs: check-deployment-status
+    if: needs.check-deployment-status.outputs.can_deploy == 'false'
     runs-on: ubuntu-latest
-    # 触发条件：push事件且提交含"Upload file:"（理论上不应执行）
-    if: "github.event_name == 'push' && contains(github.event.head_commit.message, 'Upload file:')"
     steps:
-      - name: 警告：过滤逻辑冲突
+      - name: 部署冲突提示
         run: |
-          echo "⚠️ 严重错误：事件级过滤失效！"
+          echo "⚠️ 检测到正在进行中的部署任务"
+          echo "请等待当前部署完成后再尝试，或手动取消正在进行的部署"
+          exit 0  # 不标记为失败，但明确提示冲突
+
+  # 过滤失效报警作业
+  filter-failure-alert:
+    runs-on: ubuntu-latest
+    if: "github.event_name == 'push' && matches(github.event.head_commit.message, '^Upload\\s+file:.*$', 'i')"
+    steps:
+      - name: 过滤机制失效紧急报警
+        run: |
+          echo "❌ 严重错误：事件级过滤机制完全失效！"
           echo "提交信息: ${{ github.event.head_commit.message }}"
-          echo "此提交本应被拦截，但进入了工作流！"
-          exit 1  # 强制标记为失败，便于察觉问题
+          echo "请立即检查工作流文件是否已正确提交到main分支"
+          echo "检查提交信息中的关键字是否存在特殊字符或格式问题"
+          exit 1  # 强制失败以引起注意
