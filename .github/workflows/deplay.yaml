@@ -3,7 +3,9 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches: [ main ]
-  workflow_dispatch:  # 移除了 pull_request 触发，因为通常不需要为 PR 部署 Pages
+    # 过滤含"Upload file:"的提交，不触发工作流
+    if: "!contains(github.event.head_commit.message, 'Upload file:')"
+  workflow_dispatch:  # 保留手动触发
 
 jobs:
   build:
@@ -19,15 +21,12 @@ jobs:
       - name: Setup Pages
         uses: actions/configure-pages@v4
         
-      # 只保留一个 artifact 上传步骤，并确保路径正确
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          # 指定实际的构建输出目录，通常是 'public', 'dist' 或 '_site' 等
-          # 根据你的项目修改这个路径
+          # 根目录直接部署（包含index.html和其他静态资源）
           path: '.'
           
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
-    
